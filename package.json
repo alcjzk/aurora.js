@@ -1,0 +1,23 @@
+{
+  "name": "aurora.js",
+  "version": "0.1.0",
+  "description": "Aurora Swarm Discord Bot",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/main.js"
+  },
+  "author": "Tuomas Jääsalo <tuomas.jaasalo@alceon.fi>",
+  "contributors": [],
+  "license": "ISC",
+  "dependencies": {
+    "any-date-parser": "^2.0.3",
+    "bufferutil": "^4.0.9",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "zlib-sync": "^0.1.9"
+  }
+}
