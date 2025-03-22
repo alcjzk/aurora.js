@@ -1,21 +1,14 @@
-import {
-    Client, Events, GatewayIntentBits, MessageReaction, ApplicationCommandType,
-    InteractionContextType, MessageContextMenuCommandInteraction, PermissionFlagsBits
-} from 'discord.js';
-
+import { Client, Events, GatewayIntentBits, MessageReaction } from 'discord.js';
 import { Config } from './Config.js';
 import { fetchEvents } from './ctftime.js'
 import { open as sqliteOpen, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import Event from './Event.js';
 import util from './util.js';
+import commands from './commands.js';
 
-// TODO: Restrict time before an event can be started by non admins
-// TODO: Sort incoming events by date
-// TODO: Event message colors by status
-// TODO: Notify participants when event reaches participant limit for automatic starting
+// TODO: Make use of partials?
 // TODO: Allow configuring admin role
-// TODO: Update event message when event ends normally
 // TODO: Restore try catches
 // TODO: Allow configuring the bot via discord commands
 // TODO: How to contribute
@@ -23,9 +16,6 @@ import util from './util.js';
 // TODO: Contiguous integration and deployment
 // TODO: Discord commands for checking status or persitent storage
 // TODO: Editorconfig / jslint
-
-const COMMAND_NAME_START_EVENT = 'Start Event';
-const COMMAND_NAME_CANCEL_EVENT = 'Cancel Event';
 
 /**
   * @async
@@ -50,20 +40,14 @@ const updateEvents = async (config, db, client) => {
     );
 
     for (const event_data of events) {
-        if (saved_events.some(saved => saved.id == event_data.id)) {
-            // TODO: Update number of participants
+        var event = saved_events.find(e => e.id == event_data.id);
+
+        if (event !== undefined) {
+            await event.updateParticipantCount(config, db, client, event_data.participants);
             continue;
         }
 
-        const event = new Event();
-        event.id = event_data.id;
-        event.title = event_data.title;
-        event.start = util.stringToTimestamp(event_data.start);
-        event.end = util.stringToTimestamp(event_data.finish);
-        event.url = event_data.url;
-        event.is_started = false;
-        event.is_canceled = false;
-        event.attending_ids = [];
+        event = Event.fromData(event_data);
 
         if (!config.skip_post_new_events) {
             const message = await event_data.createMessage(client, config.channel_id_event_vote);
@@ -85,10 +69,11 @@ const updateEvents = async (config, db, client) => {
   * @param {string} event_id
  **/
 const onEventWouldStartSoon = async (config, db, client, event_id) => {
-    const event = await Event.select(event_id);
+    const event = await Event.select(db, event_id);
 
     if (event.attending_ids.length < config.threshold_event_participants) {
-        console.log(`event '${event.title}' does not have enough participants and wont be started`);
+        console.log(`event '${event.title}' does not have enough participants and wont be started automatically`);
+        await event.skip(config, db, client);
         return;
     }
 
@@ -97,7 +82,9 @@ const onEventWouldStartSoon = async (config, db, client, event_id) => {
         return;
     }
 
-    await event.doStart(config, db, client);
+    console.log(`starting event '${event.title}'`);
+
+    await event.doStart(config, db, client, false);
 };
 
 /**
@@ -107,19 +94,31 @@ const onEventWouldStartSoon = async (config, db, client, event_id) => {
   * @param {Client} client
  **/
 const scheduleStartingEvents = async (config, db, client) => {
+    console.log(`checking starting events`);
     const saved_events = await Event.selectAll(db);
 
     for (const event of saved_events) {
+        if (event.is_started || event.is_skipped) {
+            continue;
+        }
+
         const s_until = event.start - util.now();
 
-        if (s_until >= 0 && s_until <= config.s_interval_schedule_events) {
-            console.log(`event '${event.title}' is scheduled to start`);
+        if (s_until < 0) {
+            console.warn(`start of event '${event.title}' was missed`);
+            continue;
+        }
+
+        if (s_until <= config.s_interval_schedule_events) {
+            const timeout = Math.max(0, s_until - config.s_before_announce_event);
+            console.log(`event '${event.title}' is scheduled to start in ${timeout} seconds`);
+
             setTimeout(
                 () => {
-                    onEventWouldStartSoon(db, client, event_id)
+                    onEventWouldStartSoon(config, db, client, event.id)
                         .catch(console.error);
                 },
-                (s_until - config.s_before_announce_event) * 1000,
+                timeout * 1000,
             );
         }
     }
@@ -132,14 +131,15 @@ const scheduleStartingEvents = async (config, db, client) => {
   * @param {Client} client
  **/
 const scheduleExpireEvents = async (config, db, client) => {
+    console.log(`checking expiring events`);
     const events = await Event.selectAll(db);
+
     for (const event of events) {
         const s_until = event.end - util.now();
 
-        if (event.isExpired()) {
-            const message = await event.message(config, client);
-            await message.delete();
-            await event.delete(db);
+        if (event.shouldExpire()) {
+            console.log(`event '${event.title}' has expired`)
+            await event.expire(config, db, client);
             return;
         }
 
@@ -148,11 +148,8 @@ const scheduleExpireEvents = async (config, db, client) => {
             console.log(`event '${event.title}' is scheduled to expire`);
             setTimeout(
                 () => {
-                    if (!event.is_started) {
-                        event.message(config, client)
-                            .then(message => message.delete().catch(console.error));
-                    }
-                    event.delete(db).catch(console.error);
+                    console.log(`event '${event.title}' has expired`)
+                    event.expire(config, db, client).catch(console.error);
                 },
                 s_until * 1000,
             );
@@ -178,7 +175,12 @@ const onClientReady = async (config, db, client) => {
             continue;
         }
 
-        const reaction = await message.reactions.cache.get(config.emoji_vote).fetch();
+
+        const reaction = await message.reactions.cache.get(config.emoji_vote)?.fetch();
+        if (reaction === undefined) {
+            continue;
+        }
+
         const users = await reaction.users.fetch();
         const ids = users.filter(user => !user.bot)
             .map(user => user.id);
@@ -211,7 +213,7 @@ const onReaction = async (config, db, client, reaction_event) => {
         return;
     }
 
-    if (event.isExpired() || event.is_started || event.is_canceled) {
+    if (event.is_started || event.is_skipped || event.shouldExpire()) {
         return;
     }
 
@@ -219,104 +221,11 @@ const onReaction = async (config, db, client, reaction_event) => {
     const ids = users
         .filter(user => !user.bot)
         .map(user => user.id);
+
     await event.updateAttendingIds(config, db, client, ids);
-};
-
-/**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
-  * @param {MessageContextMenuCommandInteraction} interaction
- **/
-const onStartEventInteraction = async (config, db, client, interaction) => {
-    const event = await Event.selectByMessageId(db, interaction.targetMessage.id);
-    if (event === undefined) {
-        return await interactionReplyNoEvent(interaction);
+    if (ids.length === config.threshold_event_participants) {
+        await event.notifyParticipantThresholdReached(config, db, client);
     }
-    if (event.is_started) {
-        return await util.interactionReplyEphemeralText(interaction, 'This event was already started.');
-    }
-    if (event.is_canceled) {
-        return await util.interactionReplyEphemeralText(
-            interaction,
-            'Cannot start an event that has been canceled.',
-        );
-    }
-    if (event.isExpired()) {
-        return await util.interactionReplyEphemeralText(
-            interaction,
-            'Cannot start an event that has expired.',
-        );
-    }
-    if (event.attending_ids.length < 2 && !interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
-        return await util.interactionReplyEphemeralText(
-            interaction,
-            'Events with less than 2 participants can only be started by an admin.',
-        );
-    }
-    await event.doStart(config, db, client);
-    await util.interactionReplyEphemeralText(interaction, 'Event started!');
-};
-
-/**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
-  * @param {MessageContextMenuCommandInteraction} interaction
- **/
-const onEventCancelInteraction = async (config, db, client, interaction) => {
-    const event = await Event.selectByMessageId(db, interaction.targetMessage.id);
-    if (event === undefined) {
-        return await interactionReplyNoEvent(interaction);
-    }
-    if (!interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
-        return await util.interactionReplyEphemeralText(
-            interaction,
-            'Events can only be canceled by an admin.',
-        );
-    }
-    if (event.is_canceled || event.is_started || event.isExpired()) {
-        return await util.interactionReplyEphemeralText(
-            interaction,
-            'Cannot cancel this event.',
-        );
-    }
-
-    await event.cancel(config, db, client);
-    return await util.interactionReplyEphemeralText(
-        interaction,
-        `Event '${event.title}' has been canceled.`
-    );
-};
-
-/**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
-  * @param {MessageContextMenuCommandInteraction} interaction
- **/
-const onInteraction = async (config, db, client, interaction) => {
-    if (interaction.commandName === COMMAND_NAME_START_EVENT) {
-        return await onStartEventInteraction(config, db, client, interaction);
-    }
-    if (interaction.commandName === COMMAND_NAME_CANCEL_EVENT) {
-        return await onEventCancelInteraction(config, db, client, interaction);
-    }
-    console.error(`received unknown interaction:\n${interaction}`);
-};
-
-/**
-  * @async 
-  * @param {MessageContextMenuCommandInteraction} interaction
- **/
-const interactionReplyNoEvent = async (interaction) => {
-    await util.interactionReplyEphemeralText(
-        interaction,
-        'This message has no event associated with it.',
-    );
 };
 
 /**
@@ -332,10 +241,16 @@ const onStart = async () => {
         driver: sqlite3.Database,
     });
 
-    if (!await Event.tableExists(db)) {
-        console.info(`database first time setup`);
-        await Event.createTable(db);
-    }
+    await db.migrate();
+
+    //if (!await Event.tableExists(db)) {
+    //    console.info(`database first time setup`);
+    //    await Event.createTable(db);
+    //}
+    //else {
+    const count = await Event.count(db);
+    console.info(`database contains ${count} events`);
+    //}
 
     if (config.skip_post_new_events) {
         console.warn(`SKIP_POST_NEW_EVENTS is enabled`);
@@ -370,25 +285,14 @@ const onStart = async () => {
     );
     client.on(
         Events.InteractionCreate,
-        interaction => onInteraction(config, db, client, interaction),
+        interaction => commands.onInteraction(config, db, client, interaction),
     );
 
     await client.login(config.token);
     await client.guilds.fetch(config.guild_id, { cache: true });
     await client.channels.fetch(config.channel_id_event_vote, { cache: true });
 
-    await client.guilds.cache.get(config.guild_id).commands.set([
-        {
-            type: ApplicationCommandType.Message,
-            name: COMMAND_NAME_START_EVENT,
-            contexts: [InteractionContextType.Guild],
-        },
-        {
-            type: ApplicationCommandType.Message,
-            name: COMMAND_NAME_CANCEL_EVENT,
-            contexts: [InteractionContextType.Guild],
-        },
-    ]);
+    await client.guilds.cache.get(config.guild_id).commands.set(commands.ALL);
 
     await updateEvents(config, db, client);
     setInterval(
@@ -401,7 +305,7 @@ const onStart = async () => {
     await scheduleStartingEvents(config, db, client);
     setInterval(
         () => {
-            scheduleStartingEvents(db, client).catch(console.error);
+            scheduleStartingEvents(config, db, client).catch(console.error);
         },
         config.s_interval_schedule_events * 1000,
     );
@@ -409,7 +313,7 @@ const onStart = async () => {
     await scheduleExpireEvents(config, db, client);
     setInterval(
         () => {
-            scheduleExpireEvents(db, client).catch(console.error);
+            scheduleExpireEvents(config, db, client).catch(console.error);
         },
         config.s_interval_schedule_events * 1000,
     );

@@ -2,12 +2,14 @@ import dotenv from 'dotenv';
 import { GuildEmoji, ReactionEmoji, ApplicationEmoji } from 'discord.js';
 
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
-export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 60 * 60 * 24;
-export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 60 * 60 * 2;
-export const DEFAULT_SKIP_POST_NEW_EVENTS = false;
-export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 4;
-export const DEFAULT_MAX_EVENTS_PER_FETCH = 4;
+export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 15;//60 * 60 * 24;
+export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 2;//60 * 60 * 2;
+export const DEFAULT_SKIP_POST_NEW_EVENTS = true;
+export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 1;
+export const DEFAULT_MAX_EVENTS_PER_FETCH = 1;
 export const DEFAULT_EMOJI_VOTE = '✅';
+export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
+export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
 
 export class Config {
     /**
@@ -62,6 +64,17 @@ export class Config {
       * @type {string | GuildEmoji | ReactionEmoji | ApplicationEmoji}
      **/
     emoji_vote;
+    /**
+      * Minimum time in seconds before the beginning of an event to allow manual start
+      * by non-admin.
+      * @type {Number}
+     **/
+    s_min_time_allow_start;
+    /**
+      * Minimum number of participants on an event to allow manual start by non-admins.
+      * @type {Number}
+     **/
+    threshold_manual_start_participants;
 
     constructor() {
         const result = dotenv.config();
@@ -86,13 +99,15 @@ export class Config {
             new Error('no channel_id in config');
         }
 
-        this.s_interval_poll_events = env.S_INTERVAL_POLL_EVENTS ?? DEFAULT_S_INTERVAL_POLL_EVENTS;
-        this.s_interval_schedule_events = env.S_INTERVAL_SCHEDULE_EVENTS ?? DEFAULT_S_INTERVAL_SCHEDULE_EVENTS;
-        this.s_before_announce_event = env.S_BEFORE_ANNOUNCE_EVENT ?? DEFAULT_S_BEFORE_ANNOUNCE_EVENT;
-        this.skip_post_new_events = env.SKIP_POST_NEW_EVENTS ?? DEFAULT_SKIP_POST_NEW_EVENTS;
-        this.threshold_event_participants = env.TRESHOLD_EVENT_PARTICIPANTS ?? DEFAULT_THRESHOLD_EVENT_PARTICIPANTS;
-        this.max_events_per_fetch = env.MAX_EVENTS_PER_FETCH ?? DEFAULT_MAX_EVENTS_PER_FETCH;
-        this.emoji_vote = env.EMOJI_VOTE ?? DEFAULT_EMOJI_VOTE;
+        this.s_interval_poll_events = DEFAULT_S_INTERVAL_POLL_EVENTS;
+        this.s_interval_schedule_events = DEFAULT_S_INTERVAL_SCHEDULE_EVENTS;
+        this.s_before_announce_event = DEFAULT_S_BEFORE_ANNOUNCE_EVENT;
+        this.skip_post_new_events = DEFAULT_SKIP_POST_NEW_EVENTS;
+        this.threshold_event_participants = DEFAULT_THRESHOLD_EVENT_PARTICIPANTS;
+        this.max_events_per_fetch = DEFAULT_MAX_EVENTS_PER_FETCH;
+        this.emoji_vote = DEFAULT_EMOJI_VOTE;
+        this.s_min_time_allow_start = DEFAULT_S_MIN_TIME_ALLOW_START;
+        this.manual_start_min_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
     }
 }
 

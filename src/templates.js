@@ -17,4 +17,12 @@ ${description}
 ⸻	
 `;
 
+templates.participantThresholdReached = (title, start, message_url) => `\
+An event you voted for has reached the participant threshold and will be started!
+
+Event: ${title}
+Starting: ${util.formatTimestamp(start)}
+Event info: ${message_url}
+`;
+
 export default templates;

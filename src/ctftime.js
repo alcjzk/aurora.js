@@ -1,5 +1,6 @@
 import { Client, Embed, Message } from 'discord.js';
 import templates from './templates.js';
+import util from './util.js';
 
 export class Organizer {
     /** @type {Number} */
@@ -71,6 +72,7 @@ export class EventData {
             title: this.title,
             url: this.ctftime_url,
             description: description,
+            color: 0x2061F7,
             fields: [
                 {
                     name: 'Teams',
@@ -115,6 +117,32 @@ export class EventData {
         const embed = this.toEmbed();
         return await client.channels.cache.get(channel_id).send({ embeds: [embed] });
     }
+
+    /**
+      * @returns {EventData}
+     **/
+    static test() {
+        const start = new Date();
+        start.setSeconds(start.getSeconds() + 15);
+        const end = new Date();
+        end.setSeconds(end.getSeconds() + 60);
+
+        return Object.assign(new EventData(), {
+            title: 'Test Event',
+            description: 'winnable',
+            participants: 0,
+            format: 'fake',
+            organizers: [{
+                id: -1,
+                name: 'nobody',
+            }],
+            onsite: true,
+            restrictions: 'not joinable',
+            start: start.toString(),
+            finish: end.toString(),
+            id: util.now(),
+        });
+    }
 }
 
 /**
@@ -128,10 +156,14 @@ export const fetchEvents = async (from, to, limit) => {
         const url = `https://ctftime.org/api/v1/events/?limit=${limit}&start=${from}&finish=${to}`;
         const response = await fetch(url);
         const json = await response.json();
+        /** @type {EventData[]} */
         const events = json.map(data => {
             const event = Object.assign(new EventData(), data);
             return event;
         });
+
+        events.sort((a, b) => a.start - b.start);
+
         return events;
     }
     catch (error) {

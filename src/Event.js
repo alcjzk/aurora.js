@@ -1,7 +1,9 @@
-import { Client, Message, ChannelType } from 'discord.js';
+import { Client, Message, ChannelType, TextChannel } from 'discord.js';
 import { Database } from 'sqlite';
 import { Config } from './Config.js';
+import { EventData } from './ctftime.js';
 import util from './util.js';
+import templates from './templates.js';
 
 class Event {
     /** @type {Number} */
@@ -23,10 +25,14 @@ class Event {
     /** @type {boolean} */
     is_started;
     /** @type {boolean} */
-    is_canceled;
+    is_skipped;
+    /** @type {boolean} */
+    is_notified;
+    /** @type {Number} */
+    participant_count;
 
-    isExpired() {
-        return this.start < util.now() && !this.is_started;
+    shouldExpire() {
+        return util.now() > this.end;
     }
 
     /**
@@ -35,23 +41,54 @@ class Event {
       * @param {Database} db
       * @param {Client} client
      **/
-    async doStart(config, db, client) {
+    async notifyParticipantThresholdReached(config, db, client) {
+        if (this.is_notified) {
+            return;
+        }
+
+        const message = await this.message(config, client);
+
+        this.is_notified = true;
+        await this.update(db);
+
+        for (const id of this.attending_ids) {
+            try {
+                const dm_channel = await client.users.createDM(id);
+                await dm_channel.send(templates.participantThresholdReached(this.title, this.start, message.url));
+            }
+            catch (error) {
+                console.warn(`failed to dm user ${id}`);
+                console.warn(error);
+            }
+        }
+    }
+
+    /**
+      * Start the event.
+      * @async
+      * @param {Config} config
+      * @param {Database} db
+      * @param {Client} client
+      * @param {boolean} force - start the event regardless of being skipped
+      * @throws If the event was already started or has ended.
+     **/
+    async doStart(config, db, client, force) {
         if (this.is_started) {
-            throw Error('event was already started');
+            throw Error('Event was already started');
         }
-        if (this.is_canceled) {
-            throw Error('cannot start an event that has been canceled');
-        }
-        if (this.isExpired()) {
-            throw Error('event has expired');
+
+        if (this.is_skipped && !force) {
+            return;
         }
 
         const channel = await client.guilds.cache.get(config.guild_id).channels.create({
             type: ChannelType.GuildText,
             name: this.title,
         });
+
         this.channel_id = channel.id;
         this.is_started = true;
+        this.is_skipped = false;
 
         await this.update(db);
 
@@ -60,33 +97,63 @@ class Event {
         await channel.send(message_content);
 
         const message = await this.message(config, client);
-        const embed = util.setEmbedFieldByName(message.embeds[0], 'Status', `started <#${channel.id}>`, false);
+        var embed = util.setEmbedFieldByName(message.embeds[0], 'Status', `Started <#${channel.id}>`, false);
+        embed = util.setEmbedColor(embed, 0x2FDE5D);
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
     }
 
     /**
+      * Deletes the event and updates or deletes the associated message.
       * @async
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
      **/
-    async cancel(config, db, client) {
-        if (this.is_started) {
-            throw Error('cannot cancel an event that has already started');
-        }
-        if (this.is_canceled) {
-            throw Error('event is already canceled');
-        }
-        if (this.isExpired()) {
-            throw Error('cannot cancel an event that has expired');
+    async expire(config, db, client) {
+        await this.delete(db);
+
+        const message = await this.message(config, client);
+
+        if (message === undefined) {
+            return;
         }
 
-        this.is_canceled = true;
+        if (!this.is_started) {
+            await message.delete();
+            return;
+        }
+
+        var embed = util.setEmbedFieldByName(message.embeds[0], 'Status', `Ended <#${this.channel_id}>`, false);
+        embed = util.setEmbedColor(embed, 0x3B6961);
+        await message.edit({ embeds: [embed] });
+        await message.reactions.removeAll();
+    }
+
+    /**
+      * Disable voting for the event and prevent automatic start.
+      * @async
+      * @param {Config} config
+      * @param {Database} db
+      * @param {Client} client
+      * @return {Promise<bool>} true if the event was succesfully marked skipped.
+     **/
+    async skip(config, db, client) {
+        if (this.is_skipped | this.is_started | this.shouldExpire()) {
+            return false;
+        }
+
+        this.is_skipped = true;
         await this.update(db);
 
         const message = await this.message(config, client);
-        const embed = util.setEmbedFieldByName(message.embeds[0], 'Status', 'canceled', false);
+
+        if (message === undefined) {
+            return true;
+        }
+
+        var embed = util.setEmbedFieldByName(message.embeds[0], 'Status', 'Skipped', false);
+        embed = util.setEmbedColor(embed, 0x8A8A8A);
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
     }
@@ -110,21 +177,64 @@ class Event {
     }
 
     /**
+      * @async
+      * @param {Config} config
+      * @param {Database} db
+      * @param {Client} client
+      * @param {Number} count
+     **/
+    async updateParticipantCount(config, db, client, count) {
+        if (count === this.participant_count) {
+            return;
+        }
+
+        try {
+            this.participant_count = count;
+            await this.update(db);
+            const message = await this.message(config, client);
+            if (message === undefined) {
+                return;
+            }
+            const embed = util.setEmbedFieldByName(message.embeds[0], 'Teams', count);
+            await message.edit({ embeds: [embed] });
+        }
+        catch (error) {
+            console.warn(`failed to update event message participant count:`);
+            console.warn(error);
+        }
+    }
+
+    /**
       * @param {Config} config
       * @param {Client} client
-      * @returns {Promise<Message>}
+      * @returns {Promise<Message | undefined>}
      **/
     async message(config, client) {
-        const message = await client.channels.cache.get(config.channel_id_event_vote)
-            .messages.fetch(this.message_id);
+        if (this.message_id === undefined || this.message_id === null) {
+            return undefined;
+        }
+
+        /** @type {TextChannel} */
+        const channel = client.channels.cache.get(config.channel_id_event_vote);
+
+        if (channel === undefined) {
+            throw Error('event vote channel is not defined');
+        }
+
+        const message = await channel.messages.fetch(this.message_id);
+
         return message;
     }
 
     /**
       * @param {Client} client
-      * @returns {Promise<Channel>}
+      * @returns {Promise<Channel | undefined>}
      **/
     async channel(client) {
+        if (this.channel_id === undefined || this.channel_id === null) {
+            return undefined;
+        }
+
         return await client.channels.fetch(this.channel_id);
     }
 
@@ -145,9 +255,11 @@ class Event {
                     channel_id,
                     attending_ids,
                     is_started,
-                    is_canceled
+                    is_skipped,
+                    is_notified,
+                    participant_count
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const result = await stmt.run(
@@ -160,7 +272,9 @@ class Event {
                 this.channel_id,
                 JSON.stringify(this.attending_ids),
                 this.is_started,
-                this.is_canceled,
+                this.is_skipped,
+                this.is_notified,
+                this.participant_count,
             );
 
             if (result.changes !== 1) {
@@ -189,7 +303,9 @@ class Event {
                     channel_id = ?,
                     attending_ids = ?,
                     is_started = ?,
-                    is_canceled = ?
+                    is_skipped = ?,
+                    is_notified = ?,
+                    participant_count = ?
                 WHERE id = ?
             `);
 
@@ -202,7 +318,9 @@ class Event {
                 this.channel_id,
                 JSON.stringify(this.attending_ids),
                 this.is_started,
-                this.is_canceled,
+                this.is_skipped,
+                this.is_notified,
+                this.participant_count,
                 this.id,
             );
 
@@ -212,6 +330,7 @@ class Event {
         }
         catch (error) {
             console.error(`failed to update event id ${this.id}`);
+            console.error(error);
         }
     }
 
@@ -267,6 +386,16 @@ class Event {
 
     /**
       * @param {Database} db
+      * @returns {Promise<Number>}
+     **/
+    static async count(db) {
+        const result = await db.get('SELECT COUNT(*) FROM events');
+
+        return result['COUNT(*)'];
+    }
+
+    /**
+      * @param {Database} db
       * @param {string} message_id
       * @returns {Promise<Event | undefined>}
      **/
@@ -298,7 +427,9 @@ class Event {
                 channel_id TEXT,
                 attending_ids TEXT,
                 is_started INT NOT NULL,
-                is_canceled INT NOT NULL
+                is_skipped INT NOT NULL,
+                is_notified INT NOT NULL,
+                participant_count INT NOT NULL
             )
         `);
     }
@@ -316,6 +447,29 @@ class Event {
             return false;
         }
         return true;
+    }
+
+
+    /**
+      * @param {Database} db
+      * @param {EventData} data
+      * @returns {Event} 
+     **/
+    static fromData(data) {
+        const event = new Event();
+
+        event.id = data.id;
+        event.title = data.title;
+        event.start = util.stringToTimestamp(data.start);
+        event.end = util.stringToTimestamp(data.finish);
+        event.url = data.url;
+        event.is_started = false;
+        event.is_skipped = false;
+        event.is_notified = false;
+        event.participant_count = data.participants;
+        event.attending_ids = [];
+
+        return event;
     }
 }
 

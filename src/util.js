@@ -1,10 +1,10 @@
-import { Embed } from 'discord.js';
+import { Embed, MessageContextMenuCommandInteraction, CommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
 import anydate from 'any-date-parser';
 const util = {};
 
 /**
   * @async 
-  * @param {MessageContextMenuCommandInteraction} interaction
+  * @param {MessageContextMenuCommandInteraction | CommandInteraction} interaction
   * @param {string} text
  **/
 util.interactionReplyEphemeralText = async (interaction, text) => {
@@ -13,6 +13,17 @@ util.interactionReplyEphemeralText = async (interaction, text) => {
         flags: MessageFlags.Ephemeral,
         withResponse: true,
     });
+};
+
+/**
+  * @async 
+  * @param {MessageContextMenuCommandInteraction} interaction
+ **/
+util.interactionReplyNoEvent = async (interaction) => {
+    await util.interactionReplyEphemeralText(
+        interaction,
+        'This message has no active event associated with it.',
+    );
 };
 
 /**
@@ -40,11 +51,27 @@ util.setEmbedFieldByName = (embed, name, value, inline) => {
 };
 
 /**
+  * @param {Embed} embed
+  * @param {Number} color
+  * @returns {Embed}
+ **/
+util.setEmbedColor = (embed, color) => {
+    const builder = new EmbedBuilder(embed.data);
+    builder.setColor(color);
+    return new Embed(builder.data);
+};
+
+/**
   * @param {Date} date
  **/
 util.formatDate = (date) => {
-    const timestamp = date.getTime() / 1000;
+    return util.formatTimestamp(util.dateToTimestamp(date));
+};
 
+/**
+  * @param {Number} timestamp
+ **/
+util.formatTimestamp = (timestamp) => {
     return `<t:${timestamp}:F> (<t:${timestamp}:R>)`;
 };
 
