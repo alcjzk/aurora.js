@@ -333,4 +333,11 @@ const onStart = async () => {
     await onUpdateConfig(config, db, client);
 };
 
-onStart();//.catch(error => console.error(`app failed to start: ${error}`));
+try {
+    await onStart();
+}
+catch (error) {
+    console.error('app failed to start');
+    console.error(error);
+}
+

@@ -7,6 +7,7 @@ import {
     CommandInteraction,
     ApplicationCommandOptionType,
     ChannelType,
+    MessageFlags,
 } from 'discord.js';
 
 import { Database } from 'sqlite';
@@ -49,12 +50,21 @@ ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, cli
         return;
     }
 
+    await interaction.deferReply({
+        flags: MessageFlags.Ephemeral,
+    });
+
     await config.set(db, client, 'channel_id_event_vote', channel_id);
 
-    await util.interactionReplyEphemeralText(
-        interaction,
-        `Event voting channel set to <#${channel_id}>`,
-    );
+    await interaction.editReply({
+        content: `Event voting channel set to <#${channel_id}>`,
+        flags: MessageFlags.Ephemeral,
+    });
+
+    //await util.interactionReplyEphemeralText(
+    //    interaction,
+    //    `Event voting channel set to <#${channel_id}>`,
+    //);
 };
 
 ConfigCommand.name = 'config';

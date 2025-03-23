@@ -4,11 +4,11 @@ import { Database } from 'sqlite';
 import { onUpdateConfig } from './main.js';
 
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
-export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 15;//60 * 60 * 24;
-export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 2;//60 * 60 * 2;
-export const DEFAULT_SKIP_POST_NEW_EVENTS = true;
+export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 60;
+export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 60 * 60;
+export const DEFAULT_SKIP_POST_NEW_EVENTS = false;
 export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 1;
-export const DEFAULT_MAX_EVENTS_PER_FETCH = 1;
+export const DEFAULT_MAX_EVENTS_PER_FETCH = 1000;
 export const DEFAULT_EMOJI_VOTE = '✅';
 export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
@@ -115,8 +115,6 @@ export class Config {
         const map = await db.all('SELECT key, value FROM config');
 
         this.channel_id_event_vote = map.find(e => e.key == 'channel_id_event_vote')?.value;
-
-        console.log(this);
     }
 
     /**

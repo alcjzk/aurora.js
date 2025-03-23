@@ -4,9 +4,9 @@ import util from './util.js';
 const templates = {};
 
 templates.eventDescription = ({ description, start, finish, prizes, url }) => `\
-⸻	
+~~\u200B     \u200B~~
 ${description}
-⸻	
+~~\u200B     \u200B~~
 **Starts:** ${util.formatDate(anydate_parser.fromString(start))}
 
 **Ends:** ${util.formatDate(anydate_parser.fromString(finish))}
@@ -14,7 +14,7 @@ ${description}
 **Prizes:** ${prizes}
 
 **Url:** ${url}
-⸻	
+~~\u200B     \u200B~~
 `;
 
 templates.participantThresholdReached = (title, start, message_url) => `\

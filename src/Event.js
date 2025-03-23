@@ -1,4 +1,4 @@
-import { Client, Message, ChannelType, TextChannel } from 'discord.js';
+import { Client, Message, ChannelType, TextChannel, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { Database } from 'sqlite';
 import { Config } from './Config.js';
 import { EventData } from './ctftime.js';
@@ -33,6 +33,26 @@ class Event {
 
     shouldExpire() {
         return util.now() > this.end;
+    }
+
+
+    /** @param {Config} config
+      * @returns {<ButtonComponent>[]}
+      *
+     **/
+    messageComponents(config) {
+        /** @type {ButtonComponent} */
+        var join_button = new ButtonBuilder({
+            customId: 'join',
+            disabled: false,
+            label: 'Join',
+            style: ButtonStyle.Primary,
+            emoji: config.emoji_vote,
+        });
+
+        var button_row = new ActionRowBuilder([join_button]);
+
+        return button_row.data();
     }
 
     /**
@@ -404,7 +424,6 @@ class Event {
         if (raw_event === undefined) {
             return undefined;
         }
-        console.log(raw_event);
         const event = Object.assign(new Event(), raw_event);
         event.attending_ids = JSON.parse(event.attending_ids);
         return event;
