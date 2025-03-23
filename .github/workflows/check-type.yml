@@ -32,8 +32,8 @@ jobs:
             types=$((types+1))
           fi
 
-          if [[ types != 1 ]];
+          if [[ $types != 1 ]];
           then
-            echo types
+            echo $types
             echo "PR needs to have exactly one type label" && exit 1
           fi
