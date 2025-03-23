@@ -1,4 +1,4 @@
-name: PR Has Type
+name: Checks
 
 on:
   pull_request:
@@ -12,13 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: PR has exactly one type label
+        continue-on-error: true
         run: |
           types=0
 
-          echo "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}"
           if [[ "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}" == "true" ]];
           then
-            echo "no"
             types=$((types+1))
           fi
 
@@ -37,3 +36,6 @@ jobs:
             echo $types
             echo "PR needs to have exactly one type label" && exit 1
           fi
+      - name: Some checks failed
+        if: ${{ failure() }}
+        run: exit 1
