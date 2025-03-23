@@ -34,6 +34,14 @@ export const TestEventCommand = {
             return false;
         }
 
+        if (!config.channel_id_event_vote) {
+            await util.interactionReplyEphemeralText(
+                interaction,
+                'Event voting channel is not configured!',
+            );
+            return true;
+        }
+
         const event_data = EventData.test();
         const event = Event.fromData(event_data);
         const message = await event_data.createMessage(client, config.channel_id_event_vote);

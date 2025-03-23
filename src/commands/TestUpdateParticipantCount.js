@@ -15,7 +15,7 @@ import util from '../util.js';
 const NAME = 'testupdateparticipantcount';
 
 /** @type {ApplicationCommand} */
-export const TestUpdateParticipantCount = {
+export const TestUpdateParticipantCountCommand = {
     type: ApplicationCommandType.ChatInput,
     name: NAME,
     contexts: [InteractionContextType.Guild],

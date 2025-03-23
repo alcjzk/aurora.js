@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import { GuildEmoji, ReactionEmoji, ApplicationEmoji } from 'discord.js';
+import { Database } from 'sqlite';
+import { onUpdateConfig } from './main.js';
 
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
 export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 15;//60 * 60 * 24;
@@ -94,11 +96,6 @@ export class Config {
             new Error('no guild_id in config');
         }
 
-        this.channel_id_event_vote = env.CHANNEL_ID_EVENT_VOTE;
-        if (this.channel_id_event_vote === undefined) {
-            new Error('no channel_id in config');
-        }
-
         this.s_interval_poll_events = DEFAULT_S_INTERVAL_POLL_EVENTS;
         this.s_interval_schedule_events = DEFAULT_S_INTERVAL_SCHEDULE_EVENTS;
         this.s_before_announce_event = DEFAULT_S_BEFORE_ANNOUNCE_EVENT;
@@ -107,7 +104,41 @@ export class Config {
         this.max_events_per_fetch = DEFAULT_MAX_EVENTS_PER_FETCH;
         this.emoji_vote = DEFAULT_EMOJI_VOTE;
         this.s_min_time_allow_start = DEFAULT_S_MIN_TIME_ALLOW_START;
-        this.manual_start_min_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
+        this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
+    }
+
+    /**
+      * @param {Database} db 
+      * @async
+     **/
+    async load(db) {
+        const map = await db.all('SELECT key, value FROM config');
+
+        this.channel_id_event_vote = map.find(e => e.key == 'channel_id_event_vote')?.value;
+
+        console.log(this);
+    }
+
+    /**
+      * @param {Database} db 
+      * @param {Client} client 
+      * @param {string} key 
+      * @param {string} value 
+      * @async
+     **/
+    async set(db, client, key, value) {
+        this[key] = value;
+        const stmt = await db.prepare(
+            `INSERT OR REPLACE INTO config (key, value)
+             VALUES (?, ?)`
+        );
+        const result = await stmt.run(key, value);
+
+        if (result.changes !== 1) {
+            throw Error('unexpected number of changes in config set');
+        }
+
+        await onUpdateConfig(this, db, client);
     }
 }
 

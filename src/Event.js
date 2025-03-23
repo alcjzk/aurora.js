@@ -214,14 +214,13 @@ class Event {
             return undefined;
         }
 
-        /** @type {TextChannel} */
-        const channel = client.channels.cache.get(config.channel_id_event_vote);
-
-        if (channel === undefined) {
-            throw Error('event vote channel is not defined');
+        if (!config.channel_id_event_vote) {
+            return undefined;
         }
 
-        const message = await channel.messages.fetch(this.message_id);
+        /** @type {TextChannel} */
+        const channel = client.channels.cache.get(config.channel_id_event_vote);
+        const message = await channel?.messages.fetch(this.message_id);
 
         return message;
     }

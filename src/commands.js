@@ -2,12 +2,14 @@ import { ApplicationCommand, CommandInteraction, MessageContextMenuCommandIntera
 import { StartEventCommand } from './commands/StartEvent.js';
 import { SkipEventCommand } from './commands/SkipEvent.js';
 import { TestEventCommand } from './commands/TestEvent.js';
-import { TestUpdateParticipantCount } from './commands/TestUpdateParticipantCount.js';
+import { TestUpdateParticipantCountCommand } from './commands/TestUpdateParticipantCount.js';
+import { ConfigCommand } from './commands/Config.js';
 
 export * from './commands/StartEvent.js';
 export * from './commands/SkipEvent.js';
 export * from './commands/TestEvent.js';
 export * from './commands/TestUpdateParticipantCount.js';
+export * from './commands/Config.js';
 
 const commands = {};
 
@@ -16,7 +18,8 @@ commands.ALL = [
     StartEventCommand,
     SkipEventCommand,
     TestEventCommand,
-    TestUpdateParticipantCount,
+    TestUpdateParticipantCountCommand,
+    ConfigCommand,
 ];
 
 /**

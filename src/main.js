@@ -10,9 +10,7 @@ import commands from './commands.js';
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
 // TODO: Restore try catches
-// TODO: Allow configuring the bot via discord commands
 // TODO: How to contribute
-// TODO: Licence
 // TODO: Contiguous integration and deployment
 // TODO: Discord commands for checking status or persitent storage
 // TODO: Editorconfig / jslint
@@ -228,29 +226,69 @@ const onReaction = async (config, db, client, reaction_event) => {
     }
 };
 
+var update_events_interval = undefined;
+var start_events_interval = undefined;
+var expire_events_interval = undefined;
+
+/**
+  * @param {Config} config
+  * @param {Database} db
+  * @param {Client} client
+ **/
+export const onUpdateConfig = async (config, db, client) => {
+    if (!config.channel_id_event_vote) {
+        console.warn('event voting channel is not configured, wont start schedulers');
+        return;
+    }
+
+    await client.channels.fetch(config.channel_id_event_vote, { cache: true });
+
+    clearInterval(update_events_interval);
+    clearInterval(start_events_interval);
+    clearInterval(expire_events_interval);
+
+    await updateEvents(config, db, client);
+    update_events_interval = setInterval(
+        () => {
+            updateEvents(config, db, client).catch(console.error);
+        },
+        config.s_interval_poll_events * 1000,
+    );
+
+    await scheduleStartingEvents(config, db, client);
+    start_events_interval = setInterval(
+        () => {
+            scheduleStartingEvents(config, db, client).catch(console.error);
+        },
+        config.s_interval_schedule_events * 1000,
+    );
+
+    await scheduleExpireEvents(config, db, client);
+    expire_events_interval = setInterval(
+        () => {
+            scheduleExpireEvents(config, db, client).catch(console.error);
+        },
+        config.s_interval_schedule_events * 1000,
+    );
+};
+
 /**
   * @async
  **/
 const onStart = async () => {
     console.info(`starting app`);
 
-    const config = new Config();
-
     const db = await sqliteOpen({
         filename: 'data.sqlite3',
         driver: sqlite3.Database,
     });
-
     await db.migrate();
 
-    //if (!await Event.tableExists(db)) {
-    //    console.info(`database first time setup`);
-    //    await Event.createTable(db);
-    //}
-    //else {
+    const config = new Config();
+    await config.load(db);
+
     const count = await Event.count(db);
     console.info(`database contains ${count} events`);
-    //}
 
     if (config.skip_post_new_events) {
         console.warn(`SKIP_POST_NEW_EVENTS is enabled`);
@@ -290,33 +328,9 @@ const onStart = async () => {
 
     await client.login(config.token);
     await client.guilds.fetch(config.guild_id, { cache: true });
-    await client.channels.fetch(config.channel_id_event_vote, { cache: true });
-
     await client.guilds.cache.get(config.guild_id).commands.set(commands.ALL);
 
-    await updateEvents(config, db, client);
-    setInterval(
-        () => {
-            updateEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_poll_events * 1000,
-    );
-
-    await scheduleStartingEvents(config, db, client);
-    setInterval(
-        () => {
-            scheduleStartingEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_schedule_events * 1000,
-    );
-
-    await scheduleExpireEvents(config, db, client);
-    setInterval(
-        () => {
-            scheduleExpireEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_schedule_events * 1000,
-    );
+    await onUpdateConfig(config, db, client);
 };
 
 onStart();//.catch(error => console.error(`app failed to start: ${error}`));
