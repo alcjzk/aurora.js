@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: PR has exactly one type label
-        continue-on-error: true
         run: |
           types=0
 
@@ -37,5 +36,5 @@ jobs:
             echo "PR needs to have exactly one type label" && exit 1
           fi
       - name: Some checks failed
-        if: ${{ failure() }}
+        if: ${{ !cancelled() && failure() }}
         run: exit 1
