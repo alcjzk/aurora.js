@@ -17,6 +17,7 @@ jobs:
           echo "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}"
           if [[ "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}" == "true" ]];
           then
+            echo "no"
             types=$((types+1))
           fi
 
@@ -32,5 +33,6 @@ jobs:
 
           if [[ types != 1 ]];
           then
+            echo types
             echo "PR needs to have exactly one type label" && exit 1
           fi
