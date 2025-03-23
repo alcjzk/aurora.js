@@ -14,18 +14,18 @@ jobs:
         run: |
           types=0
 
-          echo "${{contains(github.event.issue.labels.*.name, 't-patch')}}"
-          if [[ "${{contains(github.event.issue.labels.*.name, 't-patch')}}" == "true" ]];
+          echo "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}"
+          if [[ "${{contains(github.event.pull_request.labels.*.name, 't-patch')}}" == "true" ]];
           then
             types=$((types+1))
           fi
 
-          if [[ "${{contains(github.event.issue.labels.*.name, 't-minor')}}" == "true" ]];
+          if [[ "${{contains(github.event.pull_request.labels.*.name, 't-minor')}}" == "true" ]];
           then
             types=$((types+1))
           fi
 
-          if [[ "${{contains(github.event.issue.labels.*.name, 't-major')}}" == "true" ]];
+          if [[ "${{contains(github.event.pull_request.labels.*.name, 't-major')}}" == "true" ]];
           then
             types=$((types+1))
           fi
