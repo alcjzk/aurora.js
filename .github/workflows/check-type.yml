@@ -7,10 +7,29 @@ on:
       - opened
 
 jobs:
-  fail-on-no-type:
+  checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Check type label
+      - name: PR has exactly one type label
         run: |
-          echo ${{contains(github.event.issue.labels.*.name, 't-patch')}}
-          exit 1
+          types=0
+
+          if [[ "${{contains(github.event.issue.labels.*.name, 't-patch')}}" == "true" ]];
+          then
+            types=$((types+1))
+          fi
+
+          if [[ "${{contains(github.event.issue.labels.*.name, 't-minor')}}" == "true" ]];
+          then
+            types=$((types+1))
+          fi
+
+          if [[ "${{contains(github.event.issue.labels.*.name, 't-major')}}" == "true" ]];
+          then
+            types=$((types+1))
+          fi
+
+          if [[ types != 1 ]];
+          then
+            echo "PR needs to have exactly one type label" && exit 1
+          fi
