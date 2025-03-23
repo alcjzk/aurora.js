@@ -9,7 +9,7 @@ on:
 jobs:
   fail-on-no-type:
     runs-on: ubuntu-latest
+    if: ${{ ! contains(github.event.issue.labels.*.name, 't-patch') && ! contains(github.event.issue.labels.*.name, 't-minor') }}
     steps:
       - name: Type label is missing
-        if: ${{ ! contains(github.event.issue.labels.*.name, 't-patch') && ! contains(github.event.issue.labels.*.name, 't-minor') }}
         run: echo 'PR is missing type label' && exit 1
