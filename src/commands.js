@@ -4,6 +4,8 @@ import { SkipEventCommand } from './commands/SkipEvent.js';
 import { TestEventCommand } from './commands/TestEvent.js';
 import { TestUpdateParticipantCountCommand } from './commands/TestUpdateParticipantCount.js';
 import { ConfigCommand } from './commands/Config.js';
+import { Context } from './Context.js';
+import * as log from './log.js';
 
 export * from './commands/StartEvent.js';
 export * from './commands/SkipEvent.js';
@@ -38,7 +40,7 @@ commands.onChatInputCommandInteraction = async (config, db, client, interaction)
             return;
         }
     }
-    console.warn(`unhandled interaction:`);
+    log.warn(`unhandled interaction:`);
     console.warn(interaction);
 };
 
@@ -58,25 +60,23 @@ commands.onMessageContextMenuCommandInteraction = async (config, db, client, int
             return;
         }
     }
-    console.warn(`unhandled interaction:`);
+    log.warn(`unhandled interaction:`);
     console.warn(interaction);
 };
 
 /**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {MessageContextMenuCommandInteraction} interaction
   * @async
  **/
-commands.onInteraction = async (config, db, client, interaction) => {
+commands.onInteraction = async (ctx, interaction) => {
     if (interaction.isChatInputCommand()) {
-        return await commands.onChatInputCommandInteraction(config, db, client, interaction);
+        return await commands.onChatInputCommandInteraction(ctx.config, ctx.db, ctx.client, interaction);
     }
     if (interaction.isMessageContextMenuCommand()) {
-        return await commands.onMessageContextMenuCommandInteraction(config, db, client, interaction);
+        return await commands.onMessageContextMenuCommandInteraction(ctx.config, ctx.db, ctx.client, interaction);
     }
-    console.warn(`unhandled interaction:`);
+    log.warn(`unhandled interaction:`);
     console.warn(interaction);
 };
 

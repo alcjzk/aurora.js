@@ -1,0 +1,11 @@
+services:
+  aurorajs:
+    build: .
+    image: aurorajs
+    container_name: aurorajs
+    restart: unless-stopped
+    pull_policy: never
+    env_file: .env
+    volumes:
+      - aurorajs-data:/var/aurorajs/data
+

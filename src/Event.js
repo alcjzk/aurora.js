@@ -2,8 +2,10 @@ import { Client, Message, ChannelType, TextChannel, ButtonBuilder, ButtonStyle, 
 import { Database } from 'sqlite';
 import { Config } from './Config.js';
 import { EventData } from './ctftime.js';
+import { Context } from './Context.js';
 import util from './util.js';
 import templates from './templates.js';
+import * as log from './log.js';
 
 class Event {
     /** @type {Number} */
@@ -81,6 +83,32 @@ class Event {
                 console.warn(error);
             }
         }
+    }
+
+    /**
+      * @param {Context} ctx
+      * @async
+     **/
+    async tryStart(ctx) {
+        if (this.is_skipped) {
+            log.info(`event '${this.title}' is marked as skipped and wont be started automatically`);
+            return;
+        }
+
+        if (this.attending_ids.length < ctx.config.threshold_event_participants) {
+            log.info(`event '${this.title}' does not have enough participants and wont be started automatically`);
+            await this.skip(ctx.config, ctx.db, ctx.client);
+            return;
+        }
+
+        if (this.is_started) {
+            log.warn(`event '${this.title}' has already been started`);
+            return;
+        }
+
+        log.info(`starting event '${this.title}'`);
+
+        await this.doStart(ctx.config, ctx.db, ctx.client, false);
     }
 
     /**
@@ -212,15 +240,17 @@ class Event {
             this.participant_count = count;
             await this.update(db);
             const message = await this.message(config, client);
+
             if (message === undefined) {
                 return;
             }
+
             const embed = util.setEmbedFieldByName(message.embeds[0], 'Teams', count);
             await message.edit({ embeds: [embed] });
         }
         catch (error) {
-            console.warn(`failed to update event message participant count:`);
-            console.warn(error);
+            log.warn(`failed to update participant count for event id ${this.id}:`)
+            log.warn(error);
         }
     }
 
@@ -428,45 +458,6 @@ class Event {
         event.attending_ids = JSON.parse(event.attending_ids);
         return event;
     }
-
-    /**
-      * @async 
-      * @param {Database} db
-     **/
-    static async createTable(db) {
-        await db.run(`
-            CREATE TABLE events(
-                id PRIMARY KEY NOT NULL,
-                title TEXT NOT NULL,
-                start INT NOT NULL,
-                end INT NOT NULL,
-                url TEXT,
-                message_id TEXT,
-                channel_id TEXT,
-                attending_ids TEXT,
-                is_started INT NOT NULL,
-                is_skipped INT NOT NULL,
-                is_notified INT NOT NULL,
-                participant_count INT NOT NULL
-            )
-        `);
-    }
-
-    /**
-      * @param {Database} db
-      * @returns {Promise<boolean>} 
-     **/
-    static async tableExists(db) {
-        const name = await db.get(`
-            SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'events' LIMIT 1
-        `);
-
-        if (name === undefined) {
-            return false;
-        }
-        return true;
-    }
-
 
     /**
       * @param {Database} db

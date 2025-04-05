@@ -39,7 +39,7 @@ const ConfigEventVoteSubCommand = {
   * @param {Client} client
   * @param {CommandInteraction} interaction
  **/
-ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, client, interaction) => {
+ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, _client, interaction) => {
     const channel_id = interaction.options.get('channel')?.channel?.id;
 
     if (!channel_id) {
@@ -54,7 +54,7 @@ ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, cli
         flags: MessageFlags.Ephemeral,
     });
 
-    await config.set(db, client, 'channel_id_event_vote', channel_id);
+    await config.set(db, 'channel_id_event_vote', channel_id);
 
     await interaction.editReply({
         content: `Event voting channel set to <#${channel_id}>`,

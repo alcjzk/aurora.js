@@ -1,19 +1,23 @@
 import dotenv from 'dotenv';
 import { GuildEmoji, ReactionEmoji, ApplicationEmoji } from 'discord.js';
 import { Database } from 'sqlite';
-import { onUpdateConfig } from './main.js';
+import { EventEmitter } from 'node:events';
+import * as log from './log.js';
 
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
 export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 60;
 export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 60 * 60;
-export const DEFAULT_SKIP_POST_NEW_EVENTS = false;
+export const DEFAULT_SKIP_POST_NEW_EVENTS = true;
 export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 1;
 export const DEFAULT_MAX_EVENTS_PER_FETCH = 1000;
 export const DEFAULT_EMOJI_VOTE = '✅';
 export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
+export const DEFAULT_DEBUG_MODE = true;
 
-export class Config {
+export class Config extends EventEmitter {
+    static UPDATED = Object.freeze('Config.UPDATED');
+    static INITIALIZED = Object.freeze('Config.INITIALIZED');
     /**
       * Discord bot token.
       * @type {string}
@@ -26,7 +30,7 @@ export class Config {
     guild_id;
     /**
       * ChannelId where to post new events.
-      * @type {string}
+      * @type {string | undefined}
      **/
     channel_id_event_vote;
     /**
@@ -77,8 +81,19 @@ export class Config {
       * @type {Number}
      **/
     threshold_manual_start_participants;
+    /**
+      * Debug mode. Causes normally infallible functions to throw errors for easier debugging.
+      * @type {boolean}
+     **/
+    debug_mode;
+    /**
+      * Callback triggered when config is updated.
+      * @type {function}
+     **/
+    on_update;
 
     constructor() {
+        super();
         const result = dotenv.config();
         if (result.error !== undefined) {
             console.warn(error);
@@ -105,6 +120,7 @@ export class Config {
         this.emoji_vote = DEFAULT_EMOJI_VOTE;
         this.s_min_time_allow_start = DEFAULT_S_MIN_TIME_ALLOW_START;
         this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
+        this.debug_mode = DEFAULT_DEBUG_MODE;
     }
 
     /**
@@ -115,16 +131,33 @@ export class Config {
         const map = await db.all('SELECT key, value FROM config');
 
         this.channel_id_event_vote = map.find(e => e.key == 'channel_id_event_vote')?.value;
+
+        this.on_update = () => this.emit(Config.UPDATED, this);
+        if (this.channel_id_event_vote === undefined) {
+            this.on_update = () => this.trySetInitialized();
+        }
+
+        if (this.debug_mode) {
+            log.trac(`config:`);
+            console.debug(this);
+        }
+    }
+
+    trySetInitialized() {
+        if (this.channel_id_event_vote === undefined) {
+            return;
+        }
+        this.on_update = () => this.emit(Config.UPDATED, this);
+        this.emit(Config.INITIALIZED, this);
     }
 
     /**
       * @param {Database} db 
-      * @param {Client} client 
       * @param {string} key 
       * @param {string} value 
       * @async
      **/
-    async set(db, client, key, value) {
+    async set(db, key, value) {
         this[key] = value;
         const stmt = await db.prepare(
             `INSERT OR REPLACE INTO config (key, value)
@@ -136,7 +169,7 @@ export class Config {
             throw Error('unexpected number of changes in config set');
         }
 
-        await onUpdateConfig(this, db, client);
+        this.on_update();
     }
 }
 

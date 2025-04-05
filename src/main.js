@@ -1,11 +1,13 @@
 import { Client, Events, GatewayIntentBits, MessageReaction } from 'discord.js';
 import { Config } from './Config.js';
-import { fetchEvents } from './ctftime.js'
-import { open as sqliteOpen, Database } from 'sqlite';
+import { open as sqliteOpen } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import Event from './Event.js';
-import util from './util.js';
 import commands from './commands.js';
+import { JobManager } from './job.js';
+import fs from 'fs/promises';
+import { Context } from './Context.js';
+import * as log from './log.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -16,196 +18,55 @@ import commands from './commands.js';
 // TODO: Editorconfig / jslint
 
 /**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
  **/
-const updateEvents = async (config, db, client) => {
-    console.log('updating events');
+const onClientReady = async (ctx) => {
+    log.info(`logged in as ${ctx.client.user.tag}`);
 
-    const saved_events = await Event.selectAll(db);
+    try {
+        const events = await Event.selectAll(ctx.db);
+        for (const event of events) {
+            const message = await event.message(ctx.config, ctx.client);
 
-    const fetch_event_span_days = 30;
-    const from = new Date();
-    var to = new Date();
-    to.setDate(to.getDate() + fetch_event_span_days);
+            if (message === undefined) {
+                continue;
+            }
 
-    const events = await fetchEvents(
-        util.dateToTimestamp(from),
-        util.dateToTimestamp(to),
-        config.max_events_per_fetch,
-    );
+            const reaction = await message.reactions.cache.get(ctx.config.emoji_vote)?.fetch();
+            if (reaction === undefined) {
+                continue;
+            }
 
-    for (const event_data of events) {
-        var event = saved_events.find(e => e.id == event_data.id);
-
-        if (event !== undefined) {
-            await event.updateParticipantCount(config, db, client, event_data.participants);
-            continue;
+            const users = await reaction.users.fetch();
+            const ids = users.filter(user => !user.bot)
+                .map(user => user.id);
+            await event.updateAttendingIds(ctx.config, ctx.db, ctx.client, ids);
         }
+    }
+    catch (error) {
+        log.warn(`error refreshing events: ${error}`);
+        console.warn(error);
 
-        event = Event.fromData(event_data);
-
-        if (!config.skip_post_new_events) {
-            const message = await event_data.createMessage(client, config.channel_id_event_vote);
-            await message.react(config.emoji_vote);
-            event.message_id = message.id;
+        if (ctx.config.debug_mode) {
+            throw error;
         }
-
-        await event.insert(db);
-
-        console.log(`new event '${event.title}`);
     }
 }
 
 /**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
-  * @param {string} event_id
- **/
-const onEventWouldStartSoon = async (config, db, client, event_id) => {
-    const event = await Event.select(db, event_id);
-
-    if (event.attending_ids.length < config.threshold_event_participants) {
-        console.log(`event '${event.title}' does not have enough participants and wont be started automatically`);
-        await event.skip(config, db, client);
-        return;
-    }
-
-    if (event.is_started) {
-        console.log(`event '${event.title}' has already been started`);
-        return;
-    }
-
-    console.log(`starting event '${event.title}'`);
-
-    await event.doStart(config, db, client, false);
-};
-
-/**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
- **/
-const scheduleStartingEvents = async (config, db, client) => {
-    console.log(`checking starting events`);
-    const saved_events = await Event.selectAll(db);
-
-    for (const event of saved_events) {
-        if (event.is_started || event.is_skipped) {
-            continue;
-        }
-
-        const s_until = event.start - util.now();
-
-        if (s_until < 0) {
-            console.warn(`start of event '${event.title}' was missed`);
-            continue;
-        }
-
-        if (s_until <= config.s_interval_schedule_events) {
-            const timeout = Math.max(0, s_until - config.s_before_announce_event);
-            console.log(`event '${event.title}' is scheduled to start in ${timeout} seconds`);
-
-            setTimeout(
-                () => {
-                    onEventWouldStartSoon(config, db, client, event.id)
-                        .catch(console.error);
-                },
-                timeout * 1000,
-            );
-        }
-    }
-};
-
-/**
-  * @async
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
- **/
-const scheduleExpireEvents = async (config, db, client) => {
-    console.log(`checking expiring events`);
-    const events = await Event.selectAll(db);
-
-    for (const event of events) {
-        const s_until = event.end - util.now();
-
-        if (event.shouldExpire()) {
-            console.log(`event '${event.title}' has expired`)
-            await event.expire(config, db, client);
-            return;
-        }
-
-        // TODO: Update info for config value
-        if (s_until >= 0 && s_until <= config.s_interval_schedule_events) {
-            console.log(`event '${event.title}' is scheduled to expire`);
-            setTimeout(
-                () => {
-                    console.log(`event '${event.title}' has expired`)
-                    event.expire(config, db, client).catch(console.error);
-                },
-                s_until * 1000,
-            );
-        }
-    }
-};
-
-/**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {MessageReaction} reaction_event
  **/
-const onClientReady = async (config, db, client) => {
-    console.info(`logged in as ${client.user.tag}`);
-
-    //    try {
-    const events = await Event.selectAll(db);
-    for (const event of events) {
-        const message = await event.message(config, client);
-
-        if (message === undefined) {
-            continue;
-        }
-
-
-        const reaction = await message.reactions.cache.get(config.emoji_vote)?.fetch();
-        if (reaction === undefined) {
-            continue;
-        }
-
-        const users = await reaction.users.fetch();
-        const ids = users.filter(user => !user.bot)
-            .map(user => user.id);
-        await event.updateAttendingIds(config, db, client, ids);
-    }
-    //    }
-    //    catch (error) {
-    //        console.warn(`error refreshing events: ${error}`);
-    //    }
-}
-
-/**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
-  * @param {MessageReaction} reaction_event
- **/
-const onReaction = async (config, db, client, reaction_event) => {
-    if (reaction_event.emoji.name != config.emoji_vote) {
+const onReaction = async (ctx, reaction_event) => {
+    if (reaction_event.emoji.name != ctx.config.emoji_vote) {
         return;
     }
 
-    if (reaction_event.message.channelId != config.channel_id_event_vote) {
+    if (reaction_event.message.channelId != ctx.config.channel_id_event_vote) {
         return;
     }
 
-    const event = await Event.selectByMessageId(db, reaction_event.message.id);
+    const event = await Event.selectByMessageId(ctx.db, reaction_event.message.id);
 
     if (event === undefined) {
         return;
@@ -220,63 +81,36 @@ const onReaction = async (config, db, client, reaction_event) => {
         .filter(user => !user.bot)
         .map(user => user.id);
 
-    await event.updateAttendingIds(config, db, client, ids);
-    if (ids.length === config.threshold_event_participants) {
-        await event.notifyParticipantThresholdReached(config, db, client);
+    await event.updateAttendingIds(ctx.config, ctx.db, ctx.client, ids);
+    if (ids.length === ctx.config.threshold_event_participants) {
+        await event.notifyParticipantThresholdReached(ctx.config, ctx.db, ctx.client);
     }
 };
 
-var update_events_interval = undefined;
-var start_events_interval = undefined;
-var expire_events_interval = undefined;
+const onError = (config, error) => {
+    log.erro(`unhandled error:`);
+    console.error(error);
 
-/**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
- **/
-export const onUpdateConfig = async (config, db, client) => {
-    if (!config.channel_id_event_vote) {
-        console.warn('event voting channel is not configured, wont start schedulers');
-        return;
+    if (config.debug_mode) {
+        console.error(error.stack);
+        throw error;
     }
+};
 
-    await client.channels.fetch(config.channel_id_event_vote, { cache: true });
-
-    clearInterval(update_events_interval);
-    clearInterval(start_events_interval);
-    clearInterval(expire_events_interval);
-
-    await updateEvents(config, db, client);
-    update_events_interval = setInterval(
-        () => {
-            updateEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_poll_events * 1000,
-    );
-
-    await scheduleStartingEvents(config, db, client);
-    start_events_interval = setInterval(
-        () => {
-            scheduleStartingEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_schedule_events * 1000,
-    );
-
-    await scheduleExpireEvents(config, db, client);
-    expire_events_interval = setInterval(
-        () => {
-            scheduleExpireEvents(config, db, client).catch(console.error);
-        },
-        config.s_interval_schedule_events * 1000,
-    );
+const onStop = ctx => {
+    log.info('stopping app');
+    ctx.jobs.stopAll();
+    process.exit(0);
 };
 
 /**
   * @async
  **/
 const onStart = async () => {
-    console.info(`starting app`);
+    const pkg_file = await fs.readFile('package.json');
+    const pkg = JSON.parse(pkg_file);
+
+    log.info(`starting ${pkg.name} version ${pkg.version}`);
 
     const db = await sqliteOpen({
         filename: 'data.sqlite3',
@@ -288,10 +122,11 @@ const onStart = async () => {
     await config.load(db);
 
     const count = await Event.count(db);
-    console.info(`database contains ${count} events`);
+
+    log.info(`loaded ${count} events from db`);
 
     if (config.skip_post_new_events) {
-        console.warn(`SKIP_POST_NEW_EVENTS is enabled`);
+        log.warn(`SKIP_POST_NEW_EVENTS is enabled`);
     }
 
     const intents =
@@ -302,42 +137,86 @@ const onStart = async () => {
 
     const client = new Client({ intents: intents });
 
-    client.on(
+    const ctx = Object.assign(new Context, {
+        db,
+        config,
+        client,
+        jobs: new JobManager(),
+    });
+
+    ctx.client.on(
         Events.ClientReady,
-        client => onClientReady(config, db, client)
-            .catch(console.error)
+        _ => onClientReady(ctx)
+            .catch(error => onError(ctx.config, error))
     );
-    client.on(
+    ctx.client.on(
         Events.MessageReactionAdd,
-        reaction_event => onReaction(config, db, client, reaction_event)
-            .catch(console.error)
+        reaction_event => onReaction(ctx, reaction_event)
+            .catch(error => onError(ctx.config, error))
     );
-    client.on(
+    ctx.client.on(
         Events.MessageReactionRemove,
-        reaction_event => onReaction(config, db, client, reaction_event)
-            .catch(console.error)
+        reaction_event => onReaction(ctx, reaction_event)
+            .catch(error => onError(ctx.config, error))
     );
-    client.on(
-        Events.ShardDisconnect,
-        e => console.warn(`client disconnected: code ${e.code}`)
-    );
-    client.on(
+    ctx.client.on(
         Events.InteractionCreate,
-        interaction => commands.onInteraction(config, db, client, interaction),
+        interaction => commands.onInteraction(ctx, interaction)
+            .catch(error => onError(ctx.config, error))
+    );
+    ctx.client.on(
+        Events.ShardDisconnect,
+        error => {
+            log.warn(`client disconnected:`);
+            console.warn(error);
+        }
+    );
+    ctx.client.on(
+        Events.Error,
+        error => onError(ctx.config, error),
+    )
+
+    await ctx.client.login(ctx.config.token);
+    await ctx.client.guilds.fetch(ctx.config.guild_id, { cache: true });
+    await ctx.client.guilds.cache.get(ctx.config.guild_id).commands.set(commands.ALL);
+
+    ctx.jobs.init(ctx);
+
+    ctx.config.on(
+        Config.INITIALIZED,
+        config => {
+            ctx.client.channels.fetch(ctx.config.channel_id_event_vote, { cache: true });
+            ctx.jobs.onConfigInitialized(config);
+            log.trac('config initialized');
+        }
+    );
+    ctx.config.on(
+        Config.UPDATED,
+        _ => {
+            ctx.client.channels.fetch(ctx.config.channel_id_event_vote, { cache: true });
+            log.trac('config updated');
+        }
     );
 
-    await client.login(config.token);
-    await client.guilds.fetch(config.guild_id, { cache: true });
-    await client.guilds.cache.get(config.guild_id).commands.set(commands.ALL);
+    ctx.config.trySetInitialized();
 
-    await onUpdateConfig(config, db, client);
+    process.on('SIGTERM', _ => onStop(ctx));
+    process.on('SIGINT', _ => onStop(ctx));
 };
 
-try {
-    await onStart();
-}
-catch (error) {
-    console.error('app failed to start');
-    console.error(error);
-}
+const tryStart = async (s_retry_timeout) => {
+    try {
+        await onStart();
+    }
+    catch (error) {
+        s_retry_timeout ??= 15;
+        log.erro(`failed to start app!`);
+        console.error(error);
+        log.erro(`trying again in ${s_retry_timeout} seconds`);
+        s_retry_timeout = Math.min(s_retry_timeout * 2, 300);
 
+        setTimeout(_ => tryStart(s_retry_timeout), s_retry_timeout * 1000);
+    }
+};
+
+await tryStart();
