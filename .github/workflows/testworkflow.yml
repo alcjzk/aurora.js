@@ -16,7 +16,7 @@ jobs:
       - name: Check if head is tagged
         id: check_tag
         run: |
-          if [ $(git tag --points-at HEAD | grep .) -ne 0 ]; then
+          if [ $(git tag --points-at HEAD | grep .) != 0 ]; then
             echo "tagged=no" >> "$GITHUB_OUTPUT"
           fi
 
