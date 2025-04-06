@@ -12,7 +12,42 @@ on:
       - "package*.json"
 
 jobs:
+  check_tagged:
+    runs-on: ubuntu-latest
+    outputs:
+      is_tagged: ${{ steps.check_tag.outputs.tagged }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if head is tagged
+        id: check_tag
+        run: |
+          if [ -z "$(git tag --points-at HEAD)" ]; then
+            echo "tagged=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update package version
+        if: ${{ steps.check_tag.outputs.tagged == 'no' }}
+        run: |
+          current=$(jq -r .version package.json)
+          base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
+          n=$(echo "$current" | grep -oP 'alpha\.\K[0-9]+' || echo 0)
+          next_n=$((n + 1))
+          next_version="$base-alpha.$next_n"
+          jq --arg v "$next_version" '.version = $v' package.json > package.tmp.json
+          mv package.tmp.json package.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "Update package version to $next_version"
+          git tag $next_version
+          git push --tags
+          git push
   deploy:
+    needs: check_tagged
     runs-on: ubuntu-latest
     environment: production
     env:
