@@ -21,5 +21,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           envs: APP_DIR,DATA_PATH,GUILD_ID,TOKEN
-          script_path: scripts/deploy.sh
-
+          script: |
+            cd $(mktemp -d)
+            git clone https://github.com/${{ github.repository }}
+            cd ${{ github.repository }}
+            bash deploy.sh

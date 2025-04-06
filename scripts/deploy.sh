@@ -14,7 +14,7 @@ cp -Rf "$APP_DIR" "$APP_DIR.backup"
 cp -Rf "$DATA_PATH" "$DATA_PATH.backup"
 
 rm -rf ./*
-git clone "$REPO_URL"
+cp -R ./* "$APP_DIR/"
 
 cat <<EOF > .env
 TOKEN="$TOKEN"
