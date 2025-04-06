@@ -112,13 +112,12 @@ const onStart = async () => {
 
     log.info(`starting ${pkg.name} version ${pkg.version}`);
 
+    const config = new Config();
     const db = await sqliteOpen({
-        filename: 'data.sqlite3',
+        filename: config.database_path,
         driver: sqlite3.Database,
     });
     await db.migrate();
-
-    const config = new Config();
     await config.load(db);
 
     const count = await Event.count(db);
