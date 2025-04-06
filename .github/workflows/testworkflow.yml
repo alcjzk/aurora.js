@@ -14,14 +14,9 @@ jobs:
           fetch-depth: 0
 
       - name: Check if head is tagged
-        id: check-tag
+        id: check_tag
         run: |
-          set -x
-          git tag -l
-          git tag --points-at HEAD
-          git rev-parse HEAD
           if git tag --points-at HEAD | grep .; then
-            echo "commit is tagged"
             echo "tagged=true" >> "$GITHUB_OUTPUT"
           fi
 
