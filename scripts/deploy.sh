@@ -15,7 +15,7 @@ cp -Rf "$APP_DIR" "$APP_DIR.backup"
 cp -Rf "$DATA_PATH" "$DATA_PATH.backup"
 
 rm -rf ./*
-cp -R ./* "$APP_DIR/"
+cp -R src migrations package*.json "$APP_DIR/"
 
 cat <<EOF > .env
 TOKEN="$TOKEN"
