@@ -7,5 +7,7 @@ services:
     pull_policy: never
     env_file: .env
     volumes:
-      - aurorajs-data:/var/aurorajs/data
+      - "aurorajs-data:${DATA_PATH:-/var/aurorajs/data}"
 
+volumes:
+  aurorajs-data:
