@@ -19,12 +19,9 @@ jobs:
           if git tag --points-at HEAD | grep .; then
             echo "tagged=true" >> "$GITHUB_OUTPUT"
           fi
-  
-      - name: Run on tag
-        run: echo yes
 
       - name: Update package version
-        if: ${{ !steps.check_tag.outputs.tagged == 'true' }}
+        if: ${{ ! steps.check_tag.outputs.tagged == 'true' }}
         run: |
           current=$(jq -r .version package.json)
           base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
