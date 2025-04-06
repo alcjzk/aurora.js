@@ -6,16 +6,15 @@ APP_DIR="${APP_DIR%/}"
 DATA_PATH="${DATA_PATH%/}"
 
 mkdir -p "$APP_DIR"
-mkdir -p "$DATA_PATH"
+cp -Rf "$APP_DIR" "$APP_DIR.backup"
+rm -rf "$APP_DIR/"*
+cp * "$APP_DIR/"
 cd "$APP_DIR"
 
 docker compose down --remove-orphans --rmi all || true
 
-cp -Rf "$APP_DIR" "$APP_DIR.backup"
+mkdir -p "$DATA_PATH"
 cp -Rf "$DATA_PATH" "$DATA_PATH.backup"
-
-rm -rf ./*
-cp -R src migrations package*.json "$APP_DIR/"
 
 cat <<EOF > .env
 TOKEN="$TOKEN"
