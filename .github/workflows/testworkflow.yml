@@ -16,7 +16,7 @@ jobs:
       - name: Check if head is tagged
         id: check-tag
         run: |
-          if git tag --points-at HEAD | grep .; then
+          if git tag --points-at $GITHUB_REF | grep .; then
             echo "tagged=true" >> "$GITHUB_OUTPUT"
           fi
 
