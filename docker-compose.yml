@@ -5,9 +5,11 @@ services:
     container_name: aurorajs
     restart: unless-stopped
     pull_policy: never
+    environment:
+      DATABASE_PATH: /var/aurorajs/data/db.sqlite3
     env_file: .env
     volumes:
-      - "aurorajs-data:${DATA_PATH:-/var/aurorajs/data}"
+      - "${DATA_PATH:-aurorajs-data}:/var/aurorajs/data"
 
 volumes:
   aurorajs-data:

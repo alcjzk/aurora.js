@@ -12,11 +12,6 @@ export class JobManager {
       * @param {Context} ctx
      **/
     init(ctx) {
-        if (!ctx.config.channel_id_event_vote) {
-            log.warn('event voting channel is not configured, wont start jobs');
-            return;
-        }
-
         this.update_events = new UpdateEvents(ctx);
     }
 

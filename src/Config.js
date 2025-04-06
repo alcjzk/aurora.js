@@ -13,6 +13,7 @@ export const DEFAULT_MAX_EVENTS_PER_FETCH = 1000;
 export const DEFAULT_EMOJI_VOTE = '✅';
 export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
+export const DEFAULT_DATABASE_PATH = './db.slite3';
 export const DEFAULT_DEBUG_MODE = true;
 
 export class Config extends EventEmitter {
@@ -87,6 +88,11 @@ export class Config extends EventEmitter {
      **/
     debug_mode;
     /**
+      * Path to the database file
+      * @type {string}
+     **/
+    database_path;
+    /**
       * Callback triggered when config is updated.
       * @type {function}
      **/
@@ -96,7 +102,7 @@ export class Config extends EventEmitter {
         super();
         const result = dotenv.config();
         if (result.error !== undefined) {
-            console.warn(error);
+            console.warn(result.error);
         }
 
         const env = process.env;
@@ -120,6 +126,7 @@ export class Config extends EventEmitter {
         this.emoji_vote = DEFAULT_EMOJI_VOTE;
         this.s_min_time_allow_start = DEFAULT_S_MIN_TIME_ALLOW_START;
         this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
+        this.database_path = env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH;
         this.debug_mode = DEFAULT_DEBUG_MODE;
     }
 
