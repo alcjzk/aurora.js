@@ -23,6 +23,6 @@ jobs:
           envs: APP_DIR,DATA_PATH,GUILD_ID,TOKEN
           script: |
             cd $(mktemp -d)
-            git clone https://github.com/${{ github.repository }}
-            cd ${{ github.repository }}
+            git clone https://github.com/${{ github.repository }} build
+            cd build
             bash deploy.sh
