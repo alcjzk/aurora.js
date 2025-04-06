@@ -5,8 +5,9 @@ set -e
 APP_DIR="${APP_DIR%/}"
 DATA_PATH="${DATA_PATH%/}"
 
+mkdir -p backup
 mkdir -p "$APP_DIR"
-cp -Rf "$APP_DIR" "$APP_DIR.backup"
+cp -Rf "$APP_DIR" backup/
 rm -rf "$APP_DIR/"*
 cp -R * "$APP_DIR/"
 cd "$APP_DIR"
@@ -14,7 +15,7 @@ cd "$APP_DIR"
 docker compose down --remove-orphans --rmi all || true
 
 mkdir -p "$DATA_PATH"
-cp -Rf "$DATA_PATH" "$DATA_PATH.backup"
+cp -Rf "$DATA_PATH" backup/
 
 cat <<EOF > .env
 TOKEN="$TOKEN"
