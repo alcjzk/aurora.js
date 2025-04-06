@@ -25,7 +25,6 @@ jobs:
 
       - name: Update package version
         if: ${{ !steps.check_tag.outputs.tagged == 'true' }}
-        env: ${{ secrets.GITHUB_TOKEN }}
         run: |
           current=$(jq -r .version package.json)
           base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
