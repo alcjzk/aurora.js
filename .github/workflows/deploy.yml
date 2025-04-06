@@ -1,7 +1,14 @@
 name: Deploy
 
 on:
-  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "src/**"
+      - "migrations/**"
+      - "docker-compose.yml"
+      - "Dockerfile"
+      - "scripts/**"
 
 jobs:
   deploy:
