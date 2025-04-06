@@ -8,7 +8,7 @@ DATA_PATH="${DATA_PATH%/}"
 mkdir -p "$APP_DIR"
 cp -Rf "$APP_DIR" "$APP_DIR.backup"
 rm -rf "$APP_DIR/"*
-cp * "$APP_DIR/"
+cp -R * "$APP_DIR/"
 cd "$APP_DIR"
 
 docker compose down --remove-orphans --rmi all || true
