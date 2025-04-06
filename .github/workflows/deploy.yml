@@ -10,6 +10,8 @@ on:
       - "Dockerfile"
       - "scripts/**"
       - "package*.json"
+      - "docker-compose.yml"
+      - "Dockerfile"
 
 jobs:
   check_tagged:
@@ -69,7 +71,8 @@ jobs:
     environment: production
     env:
       APP_DIR: ${{ secrets.APP_DIR }}
-      DATA_PATH: ${{ secrets.DATA_PATH }}
+      DATA_DIR: ${{ secrets.DATA_DIR }}
+      BACKUP_DIR: ${{ secrets.BACKUP_DIR }}
       GUILD_ID: ${{ secrets.GUILD_ID }}
       TOKEN: ${{ secrets.TOKEN }}
     steps:
@@ -80,7 +83,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: APP_DIR,DATA_PATH,GUILD_ID,TOKEN
+          envs: APP_DIR,DATA_DIR,GUILD_ID,TOKEN,BACKUP_DIR
           script: |
             cd $(mktemp -d)
             git clone https://github.com/${{ github.repository }} build
