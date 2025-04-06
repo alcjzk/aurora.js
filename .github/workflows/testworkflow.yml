@@ -19,8 +19,25 @@ jobs:
           if git tag --points-at HEAD | grep .; then
             echo "tagged=true" >> "$GITHUB_OUTPUT"
           fi
-
+  
       - name: Run on tag
-        if: ${{ steps.check_tag.outputs.tagged == 'true' }}
         run: echo yes
 
+      - name: Update package version
+        if: ${{ !steps.check_tag.outputs.tagged == 'true' }}
+        env: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          current=$(jq -r .version package.json)
+          base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
+          n=$(echo "$current" | grep -oP 'alpha\.\K[0-9]+' || echo 0)
+          next_n=$((n + 1))
+          next_version="$base-alpha.$next_n"
+          jq --arg v "${{ steps.get-version.outputs.next_version }}" '.version = $v' package.json > package.tmp.json
+          mv package.tmp.json package.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "Update package version to $next_version"
+          git tag $next_version
+          git push --tags
+          git push
