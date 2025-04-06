@@ -1,0 +1,26 @@
+name: Test workflow
+
+on:
+  push:
+    branches: ["tags"]
+
+jobs:
+  check_tagged:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if head is tagged
+        id: check-tag
+        run: |
+          if git tag --points-at HEAD | grep .; then
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run on tag
+        if: ${{ steps.check_tag.outputs.tagged == 'true' }}
+        run: echo yes
+
