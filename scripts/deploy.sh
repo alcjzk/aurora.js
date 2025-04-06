@@ -8,7 +8,7 @@ DATA_PATH="${DATA_PATH%/}"
 mkdir -p "$APP_DIR"
 cd "$APP_DIR"
 
-docker compose down --remove-orphans --rmi all
+docker compose down --remove-orphans --rmi all || true
 
 cp -Rf "$APP_DIR" "$APP_DIR.backup"
 cp -Rf "$DATA_PATH" "$DATA_PATH.backup"
