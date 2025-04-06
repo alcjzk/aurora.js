@@ -10,8 +10,7 @@ on:
       - "Dockerfile"
       - "scripts/**"
       - "package*.json"
-      - "docker-compose.yml"
-      - "Dockerfile"
+      - ".github/workflows/deploy.yml"
 
 jobs:
   check_tagged:

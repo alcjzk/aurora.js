@@ -8,7 +8,7 @@ BACKUP_DIR="${BACKUP_DIR%/}"
 
 mkdir -p "$BACKUP_DIR"
 
-docker compose -f "$APP_DIR/docker-compose-yml" down --remove-orphans --rmi all || true
+docker compose -f "$APP_DIR/docker-compose.yml" down --remove-orphans --rmi all || true
 
 mv -f "$APP_DIR" "$BACKUP_DIR/" || true
 mv -f "$DATA_DIR" "$BACKUP_DIR/" || true
