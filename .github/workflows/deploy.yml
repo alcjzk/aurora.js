@@ -48,6 +48,8 @@ jobs:
 
       - name: Update package version
         if: ${{ steps.check_tag.outputs.tagged == 'no' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           current=$(jq -r .version package.json)
           base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
