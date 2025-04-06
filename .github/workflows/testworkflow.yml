@@ -16,12 +16,12 @@ jobs:
       - name: Check if head is tagged
         id: check_tag
         run: |
-          if git tag --points-at HEAD | grep .; then
-            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          if ! git tag --points-at HEAD | grep .; then
+            echo "tagged=no" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Update package version
-        if: ${{ ! steps.check_tag.outputs.tagged == 'true' }}
+        if: ${{ steps.check_tag.outputs.tagged == 'no' }}
         run: |
           current=$(jq -r .version package.json)
           base=$(echo "$current" | sed -E 's/-alpha\.[0-9]+$//')
