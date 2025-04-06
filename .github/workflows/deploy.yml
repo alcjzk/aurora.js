@@ -87,7 +87,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           envs: APP_DIR,DATA_DIR,GUILD_ID,TOKEN,BACKUP_DIR
           script: |
-            cd $(mktemp -d)
+            TMPDIR=$(mktemp -d)
+            trap '{ rm -rf -- $TMPDIR; }' EXIT
+            cd $TMPDIR
             git clone https://github.com/${{ github.repository }} build
             cd build
             bash scripts/deploy.sh
