@@ -167,7 +167,8 @@ export const fetchEvents = async (from, to, limit) => {
         return events;
     }
     catch (error) {
-        console.error(`failed to fetch upcoming events: ${error}`);
+        log.erro(`failed to fetch upcoming events:`);
+        console.error(error);
         return [];
     }
 };

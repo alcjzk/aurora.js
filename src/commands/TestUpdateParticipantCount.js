@@ -1,5 +1,4 @@
 import {
-    Client,
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
@@ -7,8 +6,7 @@ import {
     CommandInteraction
 } from 'discord.js';
 
-import { Database } from 'sqlite';
-import { Config } from '../Config.js';
+import { Context } from '../Context.js';
 import Event from '../Event.js';
 import util from '../util.js';
 
@@ -22,13 +20,11 @@ export const TestUpdateParticipantCountCommand = {
     defaultMemberPermissions: [PermissionFlagsBits.Administrator],
     description: 'Test update participant count for test event',
     /**
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @param {CommandInteraction} interaction
       * @returns {Promise<boolean>} true if interaction was handled by the command
      **/
-    onChatInputCommandInteraction: async (config, db, client, interaction) => {
+    onChatInputCommandInteraction: async (ctx, interaction) => {
         if (interaction.commandName !== NAME) {
             return false;
         }
@@ -44,7 +40,7 @@ export const TestUpdateParticipantCountCommand = {
             return true;
         }
 
-        await event.updateParticipantCount(config, db, client, event.participant_count + 1);
+        await event.updateParticipantCount(ctx.config, ctx.db, ctx.client, event.participant_count + 1);
 
         util.interactionReplyEphemeralText(
             interaction,

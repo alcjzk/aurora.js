@@ -1,18 +1,22 @@
 import { Job } from './Job.js';
 import { Context } from '../Context.js';
 import { UpdateEvents } from './UpdateEvents.js';
+import { ScheduleEvents } from './ScheduleEvents.js';
 import { Config } from '../Config.js';
 import * as log from '../log.js';
 
 export class JobManager {
     /** @type {UpdateEvents} */
     update_events;
+    /** @type {ScheduleEvents} */
+    schedule_events;
 
     /**
       * @param {Context} ctx
      **/
     init(ctx) {
         this.update_events = new UpdateEvents(ctx);
+        this.schedule_events = new ScheduleEvents(ctx);
     }
 
     onConfigInitialized() {

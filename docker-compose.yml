@@ -9,7 +9,7 @@ services:
       DATABASE_PATH: /var/aurorajs/data/db.sqlite3
     env_file: .env
     volumes:
-      - "${DATA_PATH:-aurorajs-data}:/var/aurorajs/data"
+      - "${DATA_DIR:-aurorajs-data}:/var/aurorajs/data"
 
 volumes:
   aurorajs-data:

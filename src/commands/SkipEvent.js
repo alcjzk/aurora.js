@@ -1,5 +1,4 @@
 import {
-    Client,
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
@@ -7,10 +6,9 @@ import {
     MessageContextMenuCommandInteraction
 } from 'discord.js';
 
-import { Database } from 'sqlite';
-import { Config } from '../Config.js';
 import Event from '../Event.js';
 import util from '../util.js';
+import { Context } from '../Context.js';
 
 const NAME = 'Skip Event';
 
@@ -21,18 +19,16 @@ export const SkipEventCommand = {
     contexts: [InteractionContextType.Guild],
     defaultMemberPermissions: [PermissionFlagsBits.Administrator],
     /**
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @param {MessageContextMenuCommandInteraction} interaction
       * @returns {Promise<boolean>} true if interaction was handled by the command
      **/
-    onMessageContextMenuCommandInteraction: async (config, db, client, interaction) => {
+    onMessageContextMenuCommandInteraction: async (ctx, interaction) => {
         if (interaction.commandName !== NAME) {
             return false;
         }
 
-        const event = await Event.selectByMessageId(db, interaction.targetMessage.id);
+        const event = await Event.selectByMessageId(ctx.db, interaction.targetMessage.id);
 
         if (event === undefined) {
             await util.interactionReplyNoEvent(interaction);
@@ -74,7 +70,7 @@ export const SkipEventCommand = {
             return true;
         }
 
-        await event.skip(config, db, client);
+        await event.skip(ctx.config, ctx.db, ctx.client);
 
         await util.interactionReplyEphemeralText(
             interaction,

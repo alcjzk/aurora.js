@@ -1,4 +1,4 @@
-import { Client, Message, ChannelType, TextChannel, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { Client, Message, ChannelType, TextChannel } from 'discord.js';
 import { Database } from 'sqlite';
 import { Config } from './Config.js';
 import { EventData } from './ctftime.js';
@@ -35,26 +35,6 @@ class Event {
 
     shouldExpire() {
         return util.now() > this.end;
-    }
-
-
-    /** @param {Config} config
-      * @returns {<ButtonComponent>[]}
-      *
-     **/
-    messageComponents(config) {
-        /** @type {ButtonComponent} */
-        var join_button = new ButtonBuilder({
-            customId: 'join',
-            disabled: false,
-            label: 'Join',
-            style: ButtonStyle.Primary,
-            emoji: config.emoji_vote,
-        });
-
-        var button_row = new ActionRowBuilder([join_button]);
-
-        return button_row.data();
     }
 
     /**
@@ -255,6 +235,53 @@ class Event {
     }
 
     /**
+      * @param {Context} ctx
+      * @async
+     **/
+    async schedule(ctx) {
+        const now = util.now();
+        const s_until_end = Math.max(this.end - now, 0);
+        const s_until_start = this.start - now;
+
+        if (this.shouldExpire()) {
+            log.info(`event '${this.title}' has expired`);
+            await this.expire(ctx.config, ctx.db, ctx.client);
+            return;
+        }
+
+        // TODO:  If event is already scheduled, skip
+        if (s_until_start < 0 && s_until_end > 0) {
+            log.warn(`start of event '${this.title}' was missed`);
+        }
+
+        if (this.is_started) {
+            return;
+        }
+
+        if (s_until_end <= ctx.config.s_interval_schedule_events) {
+            log.info(`event '${this.title}' is scheduled to expire`);
+            setTimeout(
+                _ => {
+                    log.info(`event '${this.title}' has expired`);
+                    this.expire(ctx.config, ctx.db, ctx.client);
+                },
+                s_until_end * 1000,
+            );
+        }
+
+        if (s_until_start <= ctx.config.s_interval_schedule_events) {
+            const timeout = Math.max(0, s_until_start - ctx.config.s_before_announce_event);
+            log.info(`event '${this.title}' is scheduled to start in ${timeout} seconds`);
+
+            setTimeout(
+                _ => Event.select(ctx.db, this.id)
+                    .then(event => event.tryStart(ctx)),
+                timeout * 1000,
+            );
+        }
+    }
+
+    /**
       * @param {Config} config
       * @param {Client} client
       * @returns {Promise<Message | undefined>}
@@ -327,7 +354,7 @@ class Event {
             );
 
             if (result.changes !== 1) {
-                console.error(`unexpected number of changes for event id ${this.id}`);
+                log.erro(`unexpected number of changes inserting event id ${this.id}`);
             }
         }
         catch (error) {
@@ -374,11 +401,11 @@ class Event {
             );
 
             if (result.changes !== 1) {
-                console.error(`unexpected number of changes for event id ${this.id}`);
+                log.erro(`unexpected number of changes updating event id ${this.id}`);
             }
         }
         catch (error) {
-            console.error(`failed to update event id ${this.id}`);
+            log.erro(`failed to update event id ${this.id}`);
             console.error(error);
         }
     }
@@ -395,12 +422,13 @@ class Event {
 
             const result = await stmt.run(this.id);
 
-            if (result.changes !== 1) {
-                console.error(`unexpected number of changes for event id ${this.id}`);
+            if (result.changes > 1) {
+                log.erro(`unexpected number of changes '${result.changes}' deleting event id ${this.id}`);
             }
         }
         catch (error) {
-            console.error(`failed to delete event id ${this.id}: ${error}`);
+            log.erro(`failed to delete event id ${this.id}:`);
+            console.error(error);
         }
     }
 

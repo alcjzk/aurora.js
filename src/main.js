@@ -11,9 +11,7 @@ import * as log from './log.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
-// TODO: Restore try catches
 // TODO: How to contribute
-// TODO: Contiguous integration and deployment
 // TODO: Discord commands for checking status or persitent storage
 // TODO: Editorconfig / jslint
 
@@ -175,7 +173,7 @@ const onStart = async () => {
         error => onError(ctx.config, error),
     )
 
-    await ctx.client.login(ctx.config.token);
+    await ctx.client.login(process.env.TOKEN);
     await ctx.client.guilds.fetch(ctx.config.guild_id, { cache: true });
     await ctx.client.guilds.cache.get(ctx.config.guild_id).commands.set(commands.ALL);
 

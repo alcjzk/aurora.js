@@ -3,23 +3,23 @@
 set -e
 
 APP_DIR="${APP_DIR%/}"
-DATA_PATH="${DATA_PATH%/}"
+DATA_DIR="${DATA_DIR%/}"
+BACKUP_DIR="${BACKUP_DIR&/}"
 
-mkdir -p backup
+mkdir -p "$BACKUP_DIR"
+
+docker compose -f "$APP_DIR/docker-compose-yml" down --remove-orphans --rmi all || true
+
+mv -f "$APP_DIR" "$BACKUP_DIR/" || true
+mv -f "$DATA_DIR" "$BACKUP_DIR/" || true
+
+mkdir -p "$DATA_DIR"
 mkdir -p "$APP_DIR"
-cp -Rf "$APP_DIR" backup/
-rm -rf "$APP_DIR/"*
 cp -R * "$APP_DIR/"
-cd "$APP_DIR"
-
-docker compose down --remove-orphans --rmi all || true
-
-mkdir -p "$DATA_PATH"
-cp -Rf "$DATA_PATH" backup/
 
 cat <<EOF > .env
 TOKEN="$TOKEN"
 GUILD_ID="$GUILD_ID"
 EOF
 
-docker compose up --build --wait
+docker compose -f "$APP_DIR/docker-compose.yml" up --build --wait

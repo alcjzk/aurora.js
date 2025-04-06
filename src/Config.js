@@ -7,23 +7,18 @@ import * as log from './log.js';
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
 export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 60;
 export const DEFAULT_S_BEFORE_ANNOUNCE_EVENT = 60 * 60;
-export const DEFAULT_SKIP_POST_NEW_EVENTS = true;
-export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 1;
-export const DEFAULT_MAX_EVENTS_PER_FETCH = 1000;
+export const DEFAULT_SKIP_POST_NEW_EVENTS = false;
+export const DEFAULT_THRESHOLD_EVENT_PARTICIPANTS = 3;
+export const DEFAULT_MAX_EVENTS_PER_FETCH = 500;
 export const DEFAULT_EMOJI_VOTE = '✅';
 export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
-export const DEFAULT_DATABASE_PATH = './db.slite3';
+export const DEFAULT_DATABASE_PATH = './db.sqlite3';
 export const DEFAULT_DEBUG_MODE = true;
 
 export class Config extends EventEmitter {
     static UPDATED = Object.freeze('Config.UPDATED');
     static INITIALIZED = Object.freeze('Config.INITIALIZED');
-    /**
-      * Discord bot token.
-      * @type {string}
-     **/
-    token;
     /**
       * GuildId for the bot.
       * @type {string}
@@ -106,11 +101,6 @@ export class Config extends EventEmitter {
         }
 
         const env = process.env;
-
-        this.token = env.TOKEN;
-        if (this.token === undefined) {
-            new Error('no token in config');
-        }
 
         this.guild_id = env.GUILD_ID
         if (this.guild_id === undefined) {

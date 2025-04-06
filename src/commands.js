@@ -25,18 +25,16 @@ commands.ALL = [
 ];
 
 /**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {CommandInteraction} interaction
   * @async
  **/
-commands.onChatInputCommandInteraction = async (config, db, client, interaction) => {
+commands.onChatInputCommandInteraction = async (ctx, interaction) => {
     for (const command of commands.ALL) {
         if (typeof command.onChatInputCommandInteraction !== typeof Function) {
             continue;
         }
-        if (await command.onChatInputCommandInteraction(config, db, client, interaction)) {
+        if (await command.onChatInputCommandInteraction(ctx, interaction)) {
             return;
         }
     }
@@ -45,18 +43,16 @@ commands.onChatInputCommandInteraction = async (config, db, client, interaction)
 };
 
 /**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {MessageContextMenuCommandInteraction} interaction
   * @async
  **/
-commands.onMessageContextMenuCommandInteraction = async (config, db, client, interaction) => {
+commands.onMessageContextMenuCommandInteraction = async (ctx, interaction) => {
     for (const command of commands.ALL) {
         if (typeof command.onMessageContextMenuCommandInteraction !== typeof Function) {
             continue;
         }
-        if (await command.onMessageContextMenuCommandInteraction(config, db, client, interaction)) {
+        if (await command.onMessageContextMenuCommandInteraction(ctx, interaction)) {
             return;
         }
     }
@@ -71,10 +67,10 @@ commands.onMessageContextMenuCommandInteraction = async (config, db, client, int
  **/
 commands.onInteraction = async (ctx, interaction) => {
     if (interaction.isChatInputCommand()) {
-        return await commands.onChatInputCommandInteraction(ctx.config, ctx.db, ctx.client, interaction);
+        return await commands.onChatInputCommandInteraction(ctx, interaction);
     }
     if (interaction.isMessageContextMenuCommand()) {
-        return await commands.onMessageContextMenuCommandInteraction(ctx.config, ctx.db, ctx.client, interaction);
+        return await commands.onMessageContextMenuCommandInteraction(ctx, interaction);
     }
     log.warn(`unhandled interaction:`);
     console.warn(interaction);

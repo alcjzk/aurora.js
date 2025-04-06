@@ -1,5 +1,4 @@
 import {
-    Client,
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
@@ -7,11 +6,11 @@ import {
     CommandInteraction
 } from 'discord.js';
 
-import { Database } from 'sqlite';
-import { Config } from '../Config.js';
 import { EventData } from '../ctftime.js';
+import { Context } from '../Context.js';
 import Event from '../Event.js';
 import util from '../util.js';
+import * as log from '../log.js';
 
 const NAME = 'testevent';
 
@@ -23,18 +22,16 @@ export const TestEventCommand = {
     defaultMemberPermissions: [PermissionFlagsBits.Administrator],
     description: 'Create a test event.',
     /**
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @param {CommandInteraction} interaction
       * @returns {Promise<boolean>} true if interaction was handled by the command
      **/
-    onChatInputCommandInteraction: async (config, db, client, interaction) => {
+    onChatInputCommandInteraction: async (ctx, interaction) => {
         if (interaction.commandName !== NAME) {
             return false;
         }
 
-        if (!config.channel_id_event_vote) {
+        if (!ctx.config.channel_id_event_vote) {
             await util.interactionReplyEphemeralText(
                 interaction,
                 'Event voting channel is not configured!',
@@ -44,12 +41,14 @@ export const TestEventCommand = {
 
         const event_data = EventData.test();
         const event = Event.fromData(event_data);
-        const message = await event_data.createMessage(client, config.channel_id_event_vote);
-        await message.react(config.emoji_vote);
+        const message = await event_data.createMessage(ctx.client, ctx.config.channel_id_event_vote);
+        await message.react(ctx.config.emoji_vote);
         event.message_id = message.id;
-        await event.insert(db);
+        await event.insert(ctx.db);
 
-        console.log('created test event');
+        log.info('created test event');
+
+        await event.schedule(ctx);
 
         await util.interactionReplyEphemeralText(
             interaction,

@@ -61,6 +61,8 @@ export class UpdateEvents extends Job {
                 await event.insert(ctx.db);
 
                 log.info(`new event '${event.title}`);
+
+                await event.schedule(ctx);
             }
         }
         catch (error) {

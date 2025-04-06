@@ -1,5 +1,4 @@
 import {
-    Client,
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
@@ -10,8 +9,7 @@ import {
     MessageFlags,
 } from 'discord.js';
 
-import { Database } from 'sqlite';
-import { Config } from '../Config.js';
+import { Context } from '../Context.js';
 import util from '../util.js';
 
 /** @type {ApplicationCommand} */
@@ -34,12 +32,10 @@ const ConfigEventVoteSubCommand = {
 };
 
 /**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {CommandInteraction} interaction
  **/
-ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, _client, interaction) => {
+ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (ctx, interaction) => {
     const channel_id = interaction.options.get('channel')?.channel?.id;
 
     if (!channel_id) {
@@ -54,17 +50,12 @@ ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (config, db, _cl
         flags: MessageFlags.Ephemeral,
     });
 
-    await config.set(db, 'channel_id_event_vote', channel_id);
+    await ctx.config.set(ctx.db, 'channel_id_event_vote', channel_id);
 
     await interaction.editReply({
         content: `Event voting channel set to <#${channel_id}>`,
         flags: MessageFlags.Ephemeral,
     });
-
-    //await util.interactionReplyEphemeralText(
-    //    interaction,
-    //    `Event voting channel set to <#${channel_id}>`,
-    //);
 };
 
 ConfigCommand.name = 'config';
@@ -77,13 +68,11 @@ ConfigCommand.options = [
 ];
 
 /**
-  * @param {Config} config
-  * @param {Database} db
-  * @param {Client} client
+  * @param {Context} ctx
   * @param {CommandInteraction} interaction
   * @returns {Promise<boolean>} true if interaction was handled by the command
  **/
-ConfigCommand.onChatInputCommandInteraction = async (config, db, client, interaction) => {
+ConfigCommand.onChatInputCommandInteraction = async (ctx, interaction) => {
     if (interaction.commandName !== ConfigCommand.name) {
         return false;
     }
@@ -91,7 +80,7 @@ ConfigCommand.onChatInputCommandInteraction = async (config, db, client, interac
     const subcommand = interaction.options.data[0];
 
     if (subcommand.name === ConfigEventVoteSubCommand.name) {
-        await ConfigEventVoteSubCommand.onChatInputCommandInteraction(config, db, client, interaction);
+        await ConfigEventVoteSubCommand.onChatInputCommandInteraction(ctx, interaction);
     }
 
     return true;

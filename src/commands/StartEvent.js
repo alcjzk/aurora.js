@@ -1,5 +1,4 @@
 import {
-    Client,
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
@@ -7,10 +6,9 @@ import {
     MessageContextMenuCommandInteraction
 } from 'discord.js';
 
-import { Database } from 'sqlite';
-import { Config } from '../Config.js';
 import Event from '../Event.js';
 import util from '../util.js';
+import { Context } from '../Context.js';
 
 const NAME = 'Start Event';
 
@@ -21,18 +19,16 @@ export const StartEventCommand = {
     contexts: [InteractionContextType.Guild],
     defaultMemberPermissions: [PermissionFlagsBits.Administrator],
     /**
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @param {MessageContextMenuCommandInteraction} interaction
       * @returns {Promise<boolean>} true if interaction was handled by the command
      **/
-    onMessageContextMenuCommandInteraction: async (config, db, client, interaction) => {
+    onMessageContextMenuCommandInteraction: async (ctx, interaction) => {
         if (interaction.commandName !== NAME) {
             return false;
         }
 
-        const event = await Event.selectByMessageId(db, interaction.targetMessage.id);
+        const event = await Event.selectByMessageId(ctx.db, interaction.targetMessage.id);
 
         if (event === undefined) {
             await util.interactionReplyNoEvent(interaction);
@@ -53,23 +49,23 @@ export const StartEventCommand = {
         }
 
         if (!interaction.memberPermissions.has(PermissionFlagsBits.Administrator)) {
-            if (event.attending_ids.length < config.threshold_event_participants) {
+            if (event.attending_ids.length < ctx.config.threshold_event_participants) {
                 await util.interactionReplyEphemeralText(
                     interaction,
-                    `Events with less than ${config.threshold_event_participants} participants can only be started by an admin.`,
+                    `Events with less than ${ctx.config.threshold_event_participants} participants can only be started by an admin.`,
                 );
                 return true;
             }
-            if (event.start > util.now() + config.s_min_time_allow_start) {
+            if (event.start > util.now() + ctx.config.s_min_time_allow_start) {
                 await util.interactionReplyEphemeralText(
                     interaction,
-                    `Events starting in more than than ${config.s_min_time_allow_start} seconds can only be started by an admin.`,
+                    `Events starting in more than than ${ctx.config.s_min_time_allow_start} seconds can only be started by an admin.`,
                 );
                 return true;
             }
         }
 
-        await event.doStart(config, db, client, true);
+        await event.doStart(ctx.config, ctx.db, ctx.client, true);
         await util.interactionReplyEphemeralText(interaction, 'Event started!');
 
         return true;
