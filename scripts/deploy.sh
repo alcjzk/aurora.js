@@ -4,7 +4,7 @@ set -e
 
 APP_DIR="${APP_DIR%/}"
 DATA_DIR="${DATA_DIR%/}"
-BACKUP_DIR="${BACKUP_DIR&/}"
+BACKUP_DIR="${BACKUP_DIR%/}"
 
 mkdir -p "$BACKUP_DIR"
 
