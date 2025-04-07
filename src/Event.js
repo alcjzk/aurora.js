@@ -338,7 +338,7 @@ class Event {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
-            const result = await stmt.run(
+            const { changes } = await stmt.run(
                 this.id,
                 this.title,
                 this.start,
@@ -353,8 +353,8 @@ class Event {
                 this.participant_count,
             );
 
-            if (result.changes !== 1) {
-                log.erro(`unexpected number of changes inserting event id ${this.id}`);
+            if (changes !== 1) {
+                log.erro(`unexpected number of changes '${changes}' inserting event id ${this.id}`);
             }
         }
         catch (error) {
@@ -385,7 +385,7 @@ class Event {
                 WHERE id = ?
             `);
 
-            const result = await stmt.run(
+            const { changes } = await stmt.run(
                 this.title,
                 this.start,
                 this.end,
@@ -400,8 +400,8 @@ class Event {
                 this.id,
             );
 
-            if (result.changes !== 1) {
-                log.erro(`unexpected number of changes updating event id ${this.id}`);
+            if (changes !== 1) {
+                log.erro(`unexpected number of changes '${changes}' updating event id ${this.id}`);
             }
         }
         catch (error) {
@@ -420,10 +420,10 @@ class Event {
                 DELETE FROM events WHERE id = ?
             `);
 
-            const result = await stmt.run(this.id);
+            const { changes } = await stmt.run(this.id);
 
-            if (result.changes > 1) {
-                log.erro(`unexpected number of changes '${result.changes}' deleting event id ${this.id}`);
+            if (changes === undefined || changes > 1) {
+                log.erro(`unexpected number of changes '${changes}' deleting event id ${this.id}`);
             }
         }
         catch (error) {
