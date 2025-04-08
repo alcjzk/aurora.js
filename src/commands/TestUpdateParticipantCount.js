@@ -2,7 +2,6 @@ import {
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
-    PermissionFlagsBits,
     CommandInteraction
 } from 'discord.js';
 
@@ -17,7 +16,7 @@ export const TestUpdateParticipantCountCommand = {
     type: ApplicationCommandType.ChatInput,
     name: NAME,
     contexts: [InteractionContextType.Guild],
-    defaultMemberPermissions: [PermissionFlagsBits.Administrator],
+    defaultMemberPermissions: [],
     description: 'Test update participant count for test event',
     /**
       * @param {Context} ctx

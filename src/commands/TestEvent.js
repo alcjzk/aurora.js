@@ -2,7 +2,6 @@ import {
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
-    PermissionFlagsBits,
     CommandInteraction
 } from 'discord.js';
 
@@ -19,7 +18,7 @@ export const TestEventCommand = {
     type: ApplicationCommandType.ChatInput,
     name: NAME,
     contexts: [InteractionContextType.Guild],
-    defaultMemberPermissions: [PermissionFlagsBits.Administrator],
+    defaultMemberPermissions: [],
     description: 'Create a test event.',
     /**
       * @param {Context} ctx
