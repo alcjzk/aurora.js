@@ -269,7 +269,7 @@ class Event {
             );
         }
 
-        if (s_until_start <= ctx.config.s_interval_schedule_events) {
+        if (s_until_start <= ctx.config.s_interval_schedule_events && !this.is_skipped) {
             const timeout = Math.max(0, s_until_start - ctx.config.s_before_announce_event);
             log.info(`event '${this.title}' is scheduled to start in ${timeout} seconds`);
 
