@@ -2,7 +2,6 @@ import {
     ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
-    PermissionFlagsBits,
     CommandInteraction,
     ApplicationCommandOptionType,
     ChannelType,
@@ -61,7 +60,7 @@ ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (ctx, interactio
 ConfigCommand.name = 'config';
 ConfigCommand.type = ApplicationCommandType.ChatInput;
 ConfigCommand.contexts = [InteractionContextType.Guild];
-ConfigCommand.defaultMemberPermissions = [PermissionFlagsBits.Administrator];
+ConfigCommand.defaultMemberPermissions = [];
 ConfigCommand.description = 'Configure the app';
 ConfigCommand.options = [
     ConfigEventVoteSubCommand,
