@@ -250,7 +250,7 @@ class Event {
         }
 
         // TODO:  If event is already scheduled, skip
-        if (s_until_start < 0 && s_until_end > 0) {
+        if (s_until_start < 0 && s_until_end > 0 && !this.is_skipped) {
             log.warn(`start of event '${this.title}' was missed`);
         }
 
