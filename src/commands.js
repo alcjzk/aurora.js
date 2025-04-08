@@ -66,6 +66,9 @@ commands.onMessageContextMenuCommandInteraction = async (ctx, interaction) => {
   * @async
  **/
 commands.onInteraction = async (ctx, interaction) => {
+    if (interaction.guildId !== ctx.config.guild_id) {
+        return;
+    }
     if (interaction.isChatInputCommand()) {
         return await commands.onChatInputCommandInteraction(ctx, interaction);
     }

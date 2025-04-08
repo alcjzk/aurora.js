@@ -56,10 +56,12 @@ const onClientReady = async (ctx) => {
   * @param {MessageReaction} reaction_event
  **/
 const onReaction = async (ctx, reaction_event) => {
+    if (reaction_event.message.guildId !== ctx.config.guild_id) {
+        return;
+    }
     if (reaction_event.emoji.name != ctx.config.emoji_vote) {
         return;
     }
-
     if (reaction_event.message.channelId != ctx.config.channel_id_event_vote) {
         return;
     }
