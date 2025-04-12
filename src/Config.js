@@ -17,8 +17,14 @@ export const DEFAULT_DATABASE_PATH = './db.sqlite3';
 export const DEFAULT_DEBUG_MODE = true;
 
 export class Config extends EventEmitter {
-    static UPDATED = Object.freeze('Config.UPDATED');
+    /**
+      * Emitted once per launch if/when all values necessary for the bot to function correctly are set.
+     **/
     static INITIALIZED = Object.freeze('Config.INITIALIZED');
+    /**
+      * Emitted when the config is previsouly initialized and is updated.
+     **/
+    static UPDATED = Object.freeze('Config.UPDATED');
     /**
       * GuildId for the bot.
       * @type {string}
@@ -93,6 +99,8 @@ export class Config extends EventEmitter {
      **/
     on_update;
 
+    #is_initialized;
+
     constructor() {
         super();
         const result = dotenv.config();
@@ -118,6 +126,15 @@ export class Config extends EventEmitter {
         this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
         this.database_path = env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH;
         this.debug_mode = DEFAULT_DEBUG_MODE;
+
+        this.#is_initialized = false;
+    }
+
+    /**
+      * @type {boolean} true when all the required values have been set in the config.
+     **/
+    isInitialized() {
+        return this.#is_initialized;
     }
 
     /**
@@ -144,6 +161,7 @@ export class Config extends EventEmitter {
         if (this.channel_id_event_vote === undefined) {
             return;
         }
+        this.#is_initialized = true;
         this.on_update = () => this.emit(Config.UPDATED, this);
         this.emit(Config.INITIALIZED, this);
     }

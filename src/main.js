@@ -14,6 +14,7 @@ import * as log from './log.js';
 // TODO: How to contribute
 // TODO: Discord commands for checking status or persitent storage
 // TODO: Editorconfig / jslint
+// TODO: Try catch for unexpected errors in interactions
 
 /**
   * @param {Context} ctx

@@ -13,16 +13,23 @@ export * from './commands/TestEvent.js';
 export * from './commands/TestUpdateParticipantCount.js';
 export * from './commands/Config.js';
 
+/** @typedef {import('discord.js').Interaction} Interaction */
+
 const commands = {};
 
 /** @type {ApplicationCommand[]} */
 commands.ALL = [
     StartEventCommand,
     SkipEventCommand,
-    TestEventCommand,
-    TestUpdateParticipantCountCommand,
     ConfigCommand,
 ];
+
+if (process.env('ENABLE_TEST_COMMANDS')) {
+    commands.ALL.concat([
+        TestEventCommand,
+        TestUpdateParticipantCountCommand,
+    ]);
+}
 
 /**
   * @param {Context} ctx
@@ -62,7 +69,25 @@ commands.onMessageContextMenuCommandInteraction = async (ctx, interaction) => {
 
 /**
   * @param {Context} ctx
-  * @param {MessageContextMenuCommandInteraction} interaction
+  * @param {MessageComponentInteraction} interaction
+  * @async
+ **/
+commands.onMessageComponentInteraction = async (ctx, interaction) => {
+    for (const command of commands.ALL) {
+        if (typeof command.onMessageComponentInteraction !== typeof Function) {
+            continue;
+        }
+        if (await command.onMessageComponentInteraction(ctx, interaction)) {
+            return;
+        }
+    }
+    log.warn(`unhandled interaction:`);
+    console.warn(interaction);
+};
+
+/**
+  * @param {Context} ctx
+  * @param {Interaction} interaction
   * @async
  **/
 commands.onInteraction = async (ctx, interaction) => {
@@ -74,6 +99,9 @@ commands.onInteraction = async (ctx, interaction) => {
     }
     if (interaction.isMessageContextMenuCommand()) {
         return await commands.onMessageContextMenuCommandInteraction(ctx, interaction);
+    }
+    if (interaction.isMessageComponent()) {
+        return await commands.onMessageComponentInteraction(ctx, interaction);
     }
     log.warn(`unhandled interaction:`);
     console.warn(interaction);

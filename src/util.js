@@ -94,4 +94,13 @@ util.now = () => {
     return util.dateToTimestamp(new Date());
 };
 
+/**
+  * Returns a new string with line breaks and indentations removed.
+  * @param {string} str
+  * @returns {string} 
+ **/
+util.stripInlineString = (str) => {
+    return str.replace(/\n\s*/g, ' ');
+};
+
 export default util;
