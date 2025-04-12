@@ -61,6 +61,7 @@ jobs:
           next_version="$base-alpha.$next_n"
           jq --arg v "$next_version" '.version = $v' package.json > package.tmp.json
           mv package.tmp.json package.json
+          npm install --package-lock-only
           git add package.json
           git commit -m "Update package version to $next_version"
           git tag $next_version
