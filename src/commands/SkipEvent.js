@@ -77,6 +77,9 @@ export const SkipEventCommand = {
             `Event '${event.title}' has been skipped.`
         );
 
+        const events = await Event.selectAll(ctx.db);
+        await ctx.event_list_message.update(ctx, events);
+
         return true;
     },
 };

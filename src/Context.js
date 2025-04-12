@@ -2,6 +2,7 @@ import { Client } from 'discord.js';
 import { Database } from 'sqlite';
 import { JobManager } from './job.js';
 import { Config } from './Config.js';
+import { EventListMessage } from './EventListMessage.js';
 
 export class Context {
     /** @type {Database} */
@@ -12,4 +13,6 @@ export class Context {
     client;
     /** @type {JobManager} */
     jobs;
+    /** @type {EventListMessage} */
+    event_list_message;
 }

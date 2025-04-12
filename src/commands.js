@@ -24,7 +24,7 @@ commands.ALL = [
     ConfigCommand,
 ];
 
-if (process.env('ENABLE_TEST_COMMANDS')) {
+if (process.env['ENABLE_TEST_COMMANDS']) {
     commands.ALL.concat([
         TestEventCommand,
         TestUpdateParticipantCountCommand,

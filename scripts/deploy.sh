@@ -23,6 +23,7 @@ cd "$APP_DIR"
 cat <<EOF > .env
 TOKEN="$TOKEN"
 GUILD_ID="$GUILD_ID"
+CHANNEL_ID_EVENT_LIST="$CHANNEL_ID_EVENT_LIST"
 EOF
 
 docker compose up --build --wait

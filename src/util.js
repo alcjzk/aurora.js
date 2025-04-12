@@ -76,6 +76,13 @@ util.formatTimestamp = (timestamp) => {
 };
 
 /**
+  * @param {Number} timestamp
+ **/
+util.formatTimestampShort = (timestamp) => {
+    return `<t:${timestamp}:R>`;
+};
+
+/**
   * @param {Date} date
  **/
 util.dateToTimestamp = (date) => {

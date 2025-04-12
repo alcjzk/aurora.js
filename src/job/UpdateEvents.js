@@ -38,7 +38,6 @@ export class UpdateEvents extends Job {
                 util.dateToTimestamp(from),
                 util.dateToTimestamp(to),
                 ctx.config.max_events_per_fetch,
-
             );
             const saved_events = await Event.selectAll(ctx.db);
 
@@ -64,6 +63,9 @@ export class UpdateEvents extends Job {
 
                 await event.schedule(ctx);
             }
+
+            const events = await Event.selectAll(ctx.db);
+            await ctx.event_list_message.update(ctx, events);
         }
         catch (error) {
             log.warn(`failed to update events:`);

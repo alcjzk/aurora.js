@@ -8,6 +8,7 @@ import { JobManager } from './job.js';
 import fs from 'fs/promises';
 import { Context } from './Context.js';
 import * as log from './log.js';
+import { EventListMessage } from './EventListMessage.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -86,6 +87,9 @@ const onReaction = async (ctx, reaction_event) => {
     if (ids.length === ctx.config.threshold_event_participants) {
         await event.notifyParticipantThresholdReached(ctx.config, ctx.db, ctx.client);
     }
+
+    const events = await Event.selectAll(ctx.db);
+    await ctx.event_list_message.update(ctx, events);
 };
 
 const onError = (config, error) => {
@@ -102,6 +106,17 @@ const onStop = ctx => {
     log.info('stopping app');
     ctx.jobs.stopAll();
     process.exit(0);
+};
+
+const onConfigInitialized = async ctx => {
+    log.trac('config initialized');
+    ctx.client.channels.fetch(ctx.config.channel_id_event_vote, { cache: true });
+    ctx.client.channels.fetch(ctx.config.channel_id_event_list, { cache: true });
+    if (!await ctx.event_list_message.tryFetch(ctx)) {
+        const events = await Event.selectAll(ctx.db)
+        await ctx.event_list_message.send(ctx, events);
+    }
+    ctx.jobs.onConfigInitialized(ctx.config);
 };
 
 /**
@@ -142,6 +157,7 @@ const onStart = async () => {
         config,
         client,
         jobs: new JobManager(),
+        event_list_message: new EventListMessage(),
     });
 
     ctx.client.on(
@@ -184,11 +200,7 @@ const onStart = async () => {
 
     ctx.config.on(
         Config.INITIALIZED,
-        config => {
-            ctx.client.channels.fetch(ctx.config.channel_id_event_vote, { cache: true });
-            ctx.jobs.onConfigInitialized(config);
-            log.trac('config initialized');
-        }
+        _ => onConfigInitialized(ctx),
     );
     ctx.config.on(
         Config.UPDATED,

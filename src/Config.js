@@ -36,6 +36,11 @@ export class Config extends EventEmitter {
      **/
     channel_id_event_vote;
     /**
+      * ChannelId where to keep the event list.
+      * @type {string | undefined}
+     **/
+    channel_id_event_list;
+    /**
       * Interval in seconds for polling events.
       * @type {Number}
      **/
@@ -112,7 +117,12 @@ export class Config extends EventEmitter {
 
         this.guild_id = env.GUILD_ID
         if (this.guild_id === undefined) {
-            new Error('no guild_id in config');
+            throw new Error('no guild_id in config');
+        }
+
+        this.channel_id_event_list = env.CHANNEL_ID_EVENT_LIST;
+        if (this.channel_id_event_list === undefined) {
+            throw new Error('event list channnel id is not set');
         }
 
         this.s_interval_poll_events = DEFAULT_S_INTERVAL_POLL_EVENTS;

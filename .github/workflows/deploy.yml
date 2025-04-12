@@ -77,6 +77,7 @@ jobs:
       BACKUP_DIR: ${{ secrets.BACKUP_DIR }}
       GUILD_ID: ${{ secrets.GUILD_ID }}
       TOKEN: ${{ secrets.TOKEN }}
+      CHANNEL_ID_EVENT_LIST: ${{ secrets.CHANNEL_ID_EVENT_LIST }}
     steps:
       - name: Deploy into production
         uses: appleboy/ssh-action@v1
@@ -85,7 +86,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: APP_DIR,DATA_DIR,GUILD_ID,TOKEN,BACKUP_DIR
+          envs: APP_DIR,DATA_DIR,GUILD_ID,TOKEN,BACKUP_DIR,CHANNEL_ID_EVENT_LIST
           script: |
             TMPDIR=$(mktemp -d)
             trap '{ rm -rf -- $TMPDIR; }' EXIT
