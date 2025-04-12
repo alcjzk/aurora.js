@@ -1,6 +1,13 @@
-import { Client, Embed, Message } from 'discord.js';
 import templates from './templates.js';
 import util from './util.js';
+import * as log from './log.js';
+
+/**
+  * @typedef {import('discord.js').Embed} Embed
+  * @typedef {import('discord.js').Client} Client
+  * @typedef {import('discord.js').Message} Message
+  * @typedef {import('discord.js').Snowflake} Snowflake
+ **/
 
 export class Organizer {
     /** @type {Number} */
@@ -61,7 +68,6 @@ export class EventData {
     url;
     /** @type {boolean} */
     public_votable;
-
     /**
       * @param {EventData} event
       * @returns {Embed}
@@ -107,17 +113,15 @@ export class EventData {
             ],
         }
     }
-
     /**
       * @param {Client} client
-      * @param {string} channel_id
+      * @param {Snowflake} channel_id
       * @returns {Promise<Message>}
      **/
     async createMessage(client, channel_id) {
         const embed = this.toEmbed();
         return await client.channels.cache.get(channel_id).send({ embeds: [embed] });
     }
-
     /**
       * @returns {EventData}
      **/
@@ -144,7 +148,6 @@ export class EventData {
         });
     }
 }
-
 /**
   * @param {Number} from - timestamp
   * @param {Number} to - timestamp

@@ -1,14 +1,15 @@
-import { Client, Events, GatewayIntentBits, MessageReaction } from 'discord.js';
+import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { Config } from './Config.js';
-import { open as sqliteOpen } from 'sqlite';
-import sqlite3 from 'sqlite3';
-import Event from './Event.js';
-import commands from './commands.js';
 import { JobManager } from './job.js';
-import fs from 'fs/promises';
 import { Context } from './Context.js';
-import * as log from './log.js';
 import { EventListMessage } from './EventListMessage.js';
+import { open as sqliteOpen } from 'sqlite';
+import Event from './Event.js';
+import sqlite3 from 'sqlite3';
+import commands from './commands.js';
+import process from 'node:process';
+import fs from 'fs/promises';
+import * as log from './log.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -161,7 +162,7 @@ const onStart = async () => {
 
     ctx.client.on(
         Events.ClientReady,
-        _ => onClientReady(ctx)
+        () => onClientReady(ctx)
             .catch(error => onError(ctx.config, error))
     );
     ctx.client.on(
@@ -199,11 +200,11 @@ const onStart = async () => {
 
     ctx.config.on(
         Config.INITIALIZED,
-        _ => onConfigInitialized(ctx),
+        () => onConfigInitialized(ctx),
     );
     ctx.config.on(
         Config.UPDATED,
-        _ => {
+        () => {
             ctx.client.channels.fetch(ctx.config.channel_id_event_vote, { cache: true });
             log.trac('config updated');
         }
@@ -211,8 +212,8 @@ const onStart = async () => {
 
     ctx.config.trySetInitialized();
 
-    process.on('SIGTERM', _ => onStop(ctx));
-    process.on('SIGINT', _ => onStop(ctx));
+    process.on('SIGTERM', () => onStop(ctx));
+    process.on('SIGINT', () => onStop(ctx));
 };
 
 const tryStart = async (s_retry_timeout) => {
@@ -226,7 +227,7 @@ const tryStart = async (s_retry_timeout) => {
         log.erro(`trying again in ${s_retry_timeout} seconds`);
         s_retry_timeout = Math.min(s_retry_timeout * 2, 300);
 
-        setTimeout(_ => tryStart(s_retry_timeout), s_retry_timeout * 1000);
+        setTimeout(() => tryStart(s_retry_timeout), s_retry_timeout * 1000);
     }
 };
 

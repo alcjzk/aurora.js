@@ -1,14 +1,19 @@
-import { Context } from './Context.js';
-import { Message, TextChannel, EmbedBuilder } from 'discord.js';
-import Event from './Event.js';
+import { EmbedBuilder } from 'discord.js';
 import util from './util.js';
 import * as log from './log.js';
-import { Config } from './Config.js';
+
+/**
+  * @typedef {import('discord.js').Message} Message
+  * @typedef {import('discord.js').TextChannel} TextChannel
+  * @typedef {import('./Context.js').Context} Context
+  * @typedef {import('./Config.js').Config} Config
+  * @typedef {import('./Event.js').default} Event
+ **/
 
 export class EventListMessage {
     /** @type {Message | undefined} */
     message;
-    /** @type {string} */
+    /** @type {string | undefined} */
     channel_id;
     /**
       * @param {Context}

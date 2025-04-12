@@ -1,10 +1,8 @@
-import { ApplicationCommand, CommandInteraction, MessageContextMenuCommandInteraction } from 'discord.js';
 import { StartEventCommand } from './commands/StartEvent.js';
 import { SkipEventCommand } from './commands/SkipEvent.js';
 import { TestEventCommand } from './commands/TestEvent.js';
 import { TestUpdateParticipantCountCommand } from './commands/TestUpdateParticipantCount.js';
 import { ConfigCommand } from './commands/Config.js';
-import { Context } from './Context.js';
 import * as log from './log.js';
 
 export * from './commands/StartEvent.js';
@@ -13,7 +11,13 @@ export * from './commands/TestEvent.js';
 export * from './commands/TestUpdateParticipantCount.js';
 export * from './commands/Config.js';
 
-/** @typedef {import('discord.js').Interaction} Interaction */
+/**
+  * @typedef {import('discord.js').Interaction} Interaction
+  * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
+  * @typedef {import('discord.js').ChatInputCommandInteraction} ChatInputCommandInteraction
+  * @typedef {import('discord.js').MessageContextMenuCommandInteraction} MessageContextMenuCommandInteraction
+  * @typedef {import('./Context.js').Context} Context
+ **/
 
 const commands = {};
 
@@ -33,7 +37,7 @@ if (process.env['ENABLE_TEST_COMMANDS']) {
 
 /**
   * @param {Context} ctx
-  * @param {CommandInteraction} interaction
+  * @param {ChatInputCommandInteraction} interaction
   * @async
  **/
 commands.onChatInputCommandInteraction = async (ctx, interaction) => {

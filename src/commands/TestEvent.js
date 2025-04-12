@@ -1,15 +1,14 @@
-import {
-    ApplicationCommand,
-    ApplicationCommandType,
-    InteractionContextType,
-    CommandInteraction
-} from 'discord.js';
-
+import { ApplicationCommandType, InteractionContextType, } from 'discord.js';
 import { EventData } from '../ctftime.js';
-import { Context } from '../Context.js';
 import Event from '../Event.js';
 import util from '../util.js';
 import * as log from '../log.js';
+
+/**
+  * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
+  * @typedef {import('discord.js').CommandInteraction} CommandInteraction
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 const NAME = 'testevent';
 

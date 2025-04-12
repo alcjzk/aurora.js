@@ -1,20 +1,27 @@
 import {
-    ApplicationCommand,
     ApplicationCommandType,
     InteractionContextType,
-    CommandInteraction,
     ApplicationCommandOptionType,
     ChannelType,
     MessageFlags,
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    MessageComponentInteraction,
 } from 'discord.js';
 
-import { Context } from '../Context.js';
 import util from '../util.js';
 import * as log from '../log.js';
+
+/**
+  * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
+  * @typedef {import('discord.js').MessageComponentInteraction} MessageComponentInteraction
+  * @typedef {import('discord.js').ApplicationCommandSubCommand} ApplicationCommandSubCommand
+  * @typedef {import('discord.js').InteractionButtonComponentData} InteractionButtonComponentData
+  * @typedef {import('discord.js').Snowflake} Snowflake
+  * @typedef {import('discord.js').MessagePayload} MessagePayload
+  * @typedef {import('discord.js').CommandInteraction} CommandInteraction
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 /** @type {ApplicationCommand} */
 export const ConfigCommand = {};

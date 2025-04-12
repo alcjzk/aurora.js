@@ -1,13 +1,12 @@
-import {
-    ApplicationCommand,
-    ApplicationCommandType,
-    InteractionContextType,
-    CommandInteraction
-} from 'discord.js';
-
-import { Context } from '../Context.js';
+import { ApplicationCommandType, InteractionContextType } from 'discord.js';
 import Event from '../Event.js';
 import util from '../util.js';
+
+/**
+  * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
+  * @typedef {import('discord.js').CommandInteraction} CommandInteraction
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 const NAME = 'testupdateparticipantcount';
 
@@ -28,7 +27,7 @@ export const TestUpdateParticipantCountCommand = {
             return false;
         }
 
-        const events = await Event.selectAll(db);
+        const events = await Event.selectAll(ctx.db);
         const event = events.find(e => e.title === 'Test Event');
 
         if (event === undefined) {

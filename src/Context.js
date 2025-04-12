@@ -1,9 +1,9 @@
-import { Client } from 'discord.js';
-import { Database } from 'sqlite';
-import { JobManager } from './job.js';
-import { Config } from './Config.js';
-import { EventListMessage } from './EventListMessage.js';
-
+/**
+  * @typedef {import('sqlite').Database} Database
+  * @typedef {import('discord.js').Client} Client
+  * @typedef {import('./Config.js').Config} Config
+  * @typedef {import('./EventListMessage.js').EventListMessage} EventListMessage
+ **/
 export class Context {
     /** @type {Database} */
     db;

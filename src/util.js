@@ -1,11 +1,16 @@
-import { Embed, MessageContextMenuCommandInteraction, CommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
+import { Embed, MessageFlags, EmbedBuilder } from 'discord.js';
 import anydate from 'any-date-parser';
 const util = {};
 
 /**
-  * @async
+  * @typedef {import('discord.js').MessageContextMenuCommandInteraction} MessageContextMenuCommandInteraction
+  * @typedef {import('discord.js').CommandInteraction} CommandInteraction
+ **/
+
+/**
   * @param {MessageContextMenuCommandInteraction | CommandInteraction} interaction
   * @param {string} text
+  * @async
  **/
 util.interactionReplyEphemeralText = async (interaction, text) => {
     await interaction.reply({

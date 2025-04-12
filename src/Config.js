@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
-import { GuildEmoji, ReactionEmoji, ApplicationEmoji } from 'discord.js';
-import { Database } from 'sqlite';
 import { EventEmitter } from 'node:events';
 import * as log from './log.js';
+
+/**
+  * @typedef {import('discord.js').Snowflake} Snowflake
+  * @typedef {import('sqlite').Database} Database
+ **/
 
 export const DEFAULT_S_INTERVAL_POLL_EVENTS = 60 * 60;
 export const DEFAULT_S_INTERVAL_SCHEDULE_EVENTS = 60;
@@ -27,12 +30,12 @@ export class Config extends EventEmitter {
     static UPDATED = Object.freeze('Config.UPDATED');
     /**
       * GuildId for the bot.
-      * @type {string}
+      * @type {Snowflake | undefined}
      **/
     guild_id;
     /**
       * ChannelId where to post new events.
-      * @type {string | undefined}
+      * @type {Snowflake | undefined}
      **/
     channel_id_event_vote;
     /**
@@ -103,7 +106,9 @@ export class Config extends EventEmitter {
       * @type {function}
      **/
     on_update;
-
+    /**
+      * @type {boolean}
+     **/
     #is_initialized;
 
     constructor() {
@@ -139,14 +144,12 @@ export class Config extends EventEmitter {
 
         this.#is_initialized = false;
     }
-
     /**
       * @type {boolean} true when all the required values have been set in the config.
      **/
     isInitialized() {
         return this.#is_initialized;
     }
-
     /**
       * @param {Database} db
       * @async
@@ -175,7 +178,6 @@ export class Config extends EventEmitter {
         this.on_update = () => this.emit(Config.UPDATED, this);
         this.emit(Config.INITIALIZED, this);
     }
-
     /**
       * @param {Database} db
       * @param {string} key

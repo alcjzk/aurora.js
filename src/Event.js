@@ -1,11 +1,17 @@
-import { Client, Message, ChannelType, TextChannel } from 'discord.js';
-import { Database } from 'sqlite';
-import { Config } from './Config.js';
-import { EventData } from './ctftime.js';
-import { Context } from './Context.js';
+import { ChannelType } from 'discord.js';
 import util from './util.js';
 import templates from './templates.js';
 import * as log from './log.js';
+
+/**
+  * @typedef {import('discord.js').Message} Message
+  * @typedef {import('discord.js').Client} Client
+  * @typedef {import('discord.js').TextChannel} TextChannel
+  * @typedef {import('sqlite').Database} Database
+  * @typedef {import('./Config.js').Config} Config
+  * @typedef {import('./Context.js').Context} Context
+  * @typedef {import('./ctftime.js').EventData} EventData
+ **/
 
 class Event {
     /** @type {Number} */
@@ -32,16 +38,17 @@ class Event {
     is_notified;
     /** @type {Number} */
     participant_count;
-
+    /**
+      * @returns {boolean}
+     **/
     shouldExpire() {
         return util.now() > this.end;
     }
-
     /**
-      * @async
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
+      * @async
      **/
     async notifyParticipantThresholdReached(config, db, client) {
         if (this.is_notified) {
@@ -64,7 +71,6 @@ class Event {
             }
         }
     }
-
     /**
       * @param {Context} ctx
       * @async
@@ -90,15 +96,15 @@ class Event {
 
         await this.doStart(ctx.config, ctx.db, ctx.client, false);
     }
-
     /**
       * Start the event.
-      * @async
+      *
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
       * @param {boolean} force - start the event regardless of being skipped
       * @throws If the event was already started or has ended.
+      * @async
      **/
     async doStart(config, db, client, force) {
         if (this.is_started) {
@@ -130,13 +136,13 @@ class Event {
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
     }
-
     /**
       * Deletes the event and updates or deletes the associated message.
-      * @async
+      *
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
+      * @async
      **/
     async expire(config, db, client) {
         await this.delete(db);
@@ -157,10 +163,9 @@ class Event {
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
     }
-
     /**
       * Disable voting for the event and prevent automatic start.
-      * @async
+      *
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
@@ -185,13 +190,12 @@ class Event {
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
     }
-
     /**
-      * @async
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
       * @param {string[]} ids
+      * @async
      **/
     async updateAttendingIds(config, db, client, ids) {
         this.attending_ids = ids;
@@ -203,13 +207,12 @@ class Event {
         const embed = util.setEmbedFieldByName(message.embeds[0], 'Would Join', mentions);
         await message.edit({ embeds: [embed] });
     }
-
     /**
-      * @async
       * @param {Config} config
       * @param {Database} db
       * @param {Client} client
       * @param {Number} count
+      * @async
      **/
     async updateParticipantCount(config, db, client, count) {
         if (count === this.participant_count) {
@@ -233,7 +236,6 @@ class Event {
             log.warn(error);
         }
     }
-
     /**
       * @param {Context} ctx
       * @async
@@ -261,7 +263,7 @@ class Event {
         if (s_until_end <= ctx.config.s_interval_schedule_events) {
             log.info(`event '${this.title}' is scheduled to expire`);
             setTimeout(
-                _ => {
+                () => {
                     log.info(`event '${this.title}' has expired`);
                     this.expire(ctx.config, ctx.db, ctx.client);
                 },
@@ -274,13 +276,12 @@ class Event {
             log.info(`event '${this.title}' is scheduled to start in ${timeout} seconds`);
 
             setTimeout(
-                _ => Event.select(ctx.db, this.id)
+                () => Event.select(ctx.db, this.id)
                     .then(event => event.tryStart(ctx)),
                 timeout * 1000,
             );
         }
     }
-
     /**
       * @param {Config} config
       * @param {Client} client
@@ -301,7 +302,6 @@ class Event {
 
         return message;
     }
-
     /**
       * @param {Client} client
       * @returns {Promise<Channel | undefined>}
@@ -313,10 +313,9 @@ class Event {
 
         return await client.channels.fetch(this.channel_id);
     }
-
     /**
-      * @async
       * @param {Database} db
+      * @async
      **/
     async insert(db) {
         try {
@@ -361,10 +360,9 @@ class Event {
             console.error(`failed to insert event id ${this.id}: ${error}`)
         }
     }
-
     /**
-      * @async
       * @param {Database} db
+      * @async
      **/
     async update(db) {
         try {
@@ -409,10 +407,9 @@ class Event {
             console.error(error);
         }
     }
-
     /**
-      * @async
       * @param {Database} db
+      * @async
      **/
     async delete(db) {
         try {
@@ -431,7 +428,6 @@ class Event {
             console.error(error);
         }
     }
-
     /**
       * @param {Database} db
       * @returns {Promise<Event[]>}

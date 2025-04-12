@@ -1,9 +1,12 @@
-import { Job } from './Job.js';
-import { Context } from '../Context.js';
 import { UpdateEvents } from './UpdateEvents.js';
 import { ScheduleEvents } from './ScheduleEvents.js';
-import { Config } from '../Config.js';
 import * as log from '../log.js';
+
+/**
+  * @typedef {import('./Job.js').Job} Job
+  * @typedef {import('../Context.js').Context} Context
+  * @typedef {import('../Config.js').Config} Config
+ **/
 
 export class JobManager {
     /** @type {UpdateEvents} */

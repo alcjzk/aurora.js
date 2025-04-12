@@ -1,14 +1,12 @@
-import {
-    ApplicationCommand,
-    ApplicationCommandType,
-    InteractionContextType,
-    PermissionFlagsBits,
-    MessageContextMenuCommandInteraction
-} from 'discord.js';
-
+import { ApplicationCommandType, InteractionContextType, PermissionFlagsBits } from 'discord.js';
 import Event from '../Event.js';
 import util from '../util.js';
-import { Context } from '../Context.js';
+
+/**
+  * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
+  * @typedef {import('discord.js').MessageContextMenuCommandInteraction} MessageContextMenuCommandInteraction
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 const NAME = 'Start Event';
 

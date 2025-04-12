@@ -1,9 +1,12 @@
 import { Job } from '../job.js';
-import { Context } from '../Context.js';
 import Event from '../Event.js';
 import util from '../util.js';
 import * as log from '../log.js';
 import * as ctftime from '../ctftime.js';
+
+/**
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 export class UpdateEvents extends Job {
     /**

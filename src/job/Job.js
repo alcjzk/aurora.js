@@ -1,6 +1,10 @@
 import { Context } from '../Context.js';
 import * as log from '../log.js';
 
+/**
+  * @typedef {import('../Context.js').Context} Context
+ **/
+
 export class Job {
     /** @type {Number} */
     #interval_id;
@@ -68,7 +72,7 @@ export class Job {
             return this.#context;
         }
 
-        if (!context instanceof Context) {
+        if (!(context instanceof Context)) {
             throw Error(`invalid type for job context`);
         }
         this.#context = context;

@@ -1,7 +1,10 @@
 import { Job } from '../job.js';
-import { Context } from '../Context.js';
 import Event from '../Event.js';
 import * as log from '../log.js';
+
+/**
+  * @typedef {import('../Context.js').Context} Context
+ **/
 
 export class ScheduleEvents extends Job {
     /**
