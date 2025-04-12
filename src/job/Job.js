@@ -49,7 +49,7 @@ export class Job {
     }
 
     /**
-      * @returns {boolean} 
+      * @returns {boolean}
      **/
     isRunning() {
         if (this.#interval_id === undefined) {
@@ -60,7 +60,7 @@ export class Job {
 
     /**
       * @param {Context} context
-      * @returns {Context} 
+      * @returns {Context}
       * @throws if context is given and is invalid
      **/
     context(context) {
@@ -95,7 +95,7 @@ export class Job {
 
     /**
       * @param {Function} func
-      * @returns {Function} 
+      * @returns {Function}
       * @throws if func is given and is invalid
      **/
     func(func) {

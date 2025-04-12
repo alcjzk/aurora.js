@@ -11,18 +11,18 @@ export class EventListMessage {
     /** @type {string} */
     channel_id;
     /**
-      * @param {Context} 
+      * @param {Context}
       * @throws on errors
       * @async
      **/
-    async tryFetch({client, config}) {
+    async tryFetch({ client, config }) {
         log.trac('trying to fetch existing event list message');
         /** @type {TextChannel} */
         const channel_id = config.channel_id_event_list;
         const channel = client.channels.cache.get(channel_id);
- 
+
         /** @type {Message[]} */
-        const messages = await channel.messages.fetch({limit: 100});
+        const messages = await channel.messages.fetch({ limit: 100 });
         const message = messages.find(m => m.author.id == client.user.id);
         if (message === undefined) {
             log.trac('event list message was not found');
@@ -37,13 +37,13 @@ export class EventListMessage {
         return true;
     }
     /**
-      * @param {Context} 
+      * @param {Context}
       * @param {Event[]} events
       * @returns {Promise<EventListMessage>}
       * @throws on errors
       * @async
      **/
-    async send({client, config}, events) {
+    async send({ client, config }, events) {
         /** @type {TextChannel} */
         this.channel_id = config.channel_id_event_list;
         const channel = client.channels.cache.get(this.channel_id);
@@ -59,7 +59,7 @@ export class EventListMessage {
       * @throws on errors
       * @async
      **/
-    async update({config}, events) {
+    async update({ config }, events) {
         /** @type {TextChannel} */
         this.message.edit({
             embeds: [EventListMessage.embed(config, events)],

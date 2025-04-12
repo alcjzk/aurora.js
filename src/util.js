@@ -3,7 +3,7 @@ import anydate from 'any-date-parser';
 const util = {};
 
 /**
-  * @async 
+  * @async
   * @param {MessageContextMenuCommandInteraction | CommandInteraction} interaction
   * @param {string} text
  **/
@@ -16,7 +16,7 @@ util.interactionReplyEphemeralText = async (interaction, text) => {
 };
 
 /**
-  * @async 
+  * @async
   * @param {MessageContextMenuCommandInteraction} interaction
  **/
 util.interactionReplyNoEvent = async (interaction) => {
@@ -104,7 +104,7 @@ util.now = () => {
 /**
   * Returns a new string with line breaks and indentations removed.
   * @param {string} str
-  * @returns {string} 
+  * @returns {string}
  **/
 util.stripInlineString = (str) => {
     return str.replace(/\n\s*/g, ' ');

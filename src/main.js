@@ -14,7 +14,6 @@ import { EventListMessage } from './EventListMessage.js';
 // TODO: Allow configuring admin role
 // TODO: How to contribute
 // TODO: Discord commands for checking status or persitent storage
-// TODO: Editorconfig / jslint
 // TODO: Try catch for unexpected errors in interactions
 
 /**

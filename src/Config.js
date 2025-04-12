@@ -148,7 +148,7 @@ export class Config extends EventEmitter {
     }
 
     /**
-      * @param {Database} db 
+      * @param {Database} db
       * @async
      **/
     async load(db) {
@@ -177,9 +177,9 @@ export class Config extends EventEmitter {
     }
 
     /**
-      * @param {Database} db 
-      * @param {string} key 
-      * @param {string} value 
+      * @param {Database} db
+      * @param {string} key
+      * @param {string} value
       * @async
      **/
     async set(db, key, value) {

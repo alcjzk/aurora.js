@@ -363,14 +363,14 @@ class Event {
     }
 
     /**
-      * @async 
+      * @async
       * @param {Database} db
      **/
     async update(db) {
         try {
             const stmt = await db.prepare(`
-                UPDATE events 
-                SET 
+                UPDATE events
+                SET
                     title = ?,
                     start = ?,
                     end = ?,
@@ -411,7 +411,7 @@ class Event {
     }
 
     /**
-      * @async 
+      * @async
       * @param {Database} db
      **/
     async delete(db) {
@@ -490,7 +490,7 @@ class Event {
     /**
       * @param {Database} db
       * @param {EventData} data
-      * @returns {Event} 
+      * @returns {Event}
      **/
     static fromData(data) {
         const event = new Event();

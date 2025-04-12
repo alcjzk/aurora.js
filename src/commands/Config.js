@@ -75,8 +75,7 @@ ConfigEventVoteSubCommand.onChatInputCommandInteraction = async (ctx, interactio
         flags: MessageFlags.Ephemeral,
     });
 
-    if (ctx.config.isInitialized())
-    {
+    if (ctx.config.isInitialized()) {
         await interaction.editReply({
             content: util.stripInlineString(`
             Event voting is already configured. Changing the voting channel will cause any messages in
