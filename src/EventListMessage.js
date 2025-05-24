@@ -67,7 +67,7 @@ export class EventListMessage {
      **/
     async update({ config }, events) {
         /** @type {TextChannel} */
-        this.message.edit({
+        await this.message.edit({
             embeds: [EventListMessage.embed(config, events)],
         });
         log.trac('updated event list message');

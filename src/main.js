@@ -191,6 +191,10 @@ const onStart = async () => {
         Events.Error,
         error => onError(ctx.config, error),
     )
+    ctx.client.on(
+        'unhandledRejection',
+        error => onError(ctx.config, error),
+    );
 
     await ctx.client.login(process.env.TOKEN);
     await ctx.client.guilds.fetch(ctx.config.guild_id, { cache: true });

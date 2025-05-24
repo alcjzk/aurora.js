@@ -72,7 +72,7 @@ export class UpdateEvents extends Job {
         }
         catch (error) {
             log.warn(`failed to update events:`);
-            log.warn(error);
+            console.warn(error);
 
             if (ctx.config.debug_mode) {
                 throw error;
