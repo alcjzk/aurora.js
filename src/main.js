@@ -191,7 +191,8 @@ const onStart = async () => {
         Events.Error,
         error => onError(ctx.config, error),
     )
-    ctx.client.on(
+
+    process.on(
         'unhandledRejection',
         error => onError(ctx.config, error),
     );
