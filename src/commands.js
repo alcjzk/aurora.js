@@ -3,6 +3,7 @@ import { SkipEventCommand } from './commands/SkipEvent.js';
 import { TestEventCommand } from './commands/TestEvent.js';
 import { TestUpdateParticipantCountCommand } from './commands/TestUpdateParticipantCount.js';
 import { ConfigCommand } from './commands/Config.js';
+import process from 'node:process';
 import * as log from './log.js';
 
 export * from './commands/StartEvent.js';
@@ -28,8 +29,9 @@ commands.ALL = [
     ConfigCommand,
 ];
 
-if (process.env['ENABLE_TEST_COMMANDS']) {
-    commands.ALL.concat([
+if (process.env.ENABLE_TEST_COMMANDS) {
+    log.warn('test commands enabled');
+    commands.ALL = commands.ALL.concat([
         TestEventCommand,
         TestUpdateParticipantCountCommand,
     ]);
