@@ -1,3 +1,5 @@
+import process from 'node:process';
+
 export const LogLevel = Object.freeze({
     NONE: 0,
     ERRO: 1,
@@ -6,7 +8,22 @@ export const LogLevel = Object.freeze({
     TRAC: 4,
 });
 
-const level = LogLevel.TRAC;
+const LOG_LEVEL_DEFAULT = LogLevel.TRAC;
+
+const level = (() => {
+    switch (process.env.LOG_LEVEL) {
+        case 'ERRO':
+            return LogLevel.ERRO;
+        case 'WARN':
+            return LogLevel.WARN;
+        case 'INFO':
+            return LogLevel.INFO;
+        case 'TRAC':
+            return LogLevel.TRAC;
+        default:
+            return LOG_LEVEL_DEFAULT;
+    }
+})();
 
 const time = () => {
     const date = new Date();
