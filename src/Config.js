@@ -17,7 +17,7 @@ export const DEFAULT_EMOJI_VOTE = '✅';
 export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
 export const DEFAULT_DATABASE_PATH = './db.sqlite3';
-export const DEFAULT_DEBUG_MODE = true;
+export const DEFAULT_DEBUG_MODE = false;
 
 export class Config extends EventEmitter {
     /**
@@ -140,7 +140,7 @@ export class Config extends EventEmitter {
         this.s_min_time_allow_start = DEFAULT_S_MIN_TIME_ALLOW_START;
         this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
         this.database_path = env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH;
-        this.debug_mode = DEFAULT_DEBUG_MODE;
+        this.debug_mode = env.DEBUG_MODE ?? DEFAULT_DEBUG_MODE;
 
         this.#is_initialized = false;
     }
