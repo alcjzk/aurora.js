@@ -1,6 +1,7 @@
 import templates from './templates.js';
 import util from './util.js';
 import * as log from './log.js';
+import * as discord from './discord.js';
 
 /**
   * @typedef {import('discord.js').Embed} Embed
@@ -77,7 +78,7 @@ export class EventData {
         return {
             title: this.title,
             url: this.ctftime_url,
-            description: description,
+            description: util.truncateToLengthWithEllipsis(description, discord.EMBED_DESCRIPTION_MAX_LENGTH),
             color: 0x2061F7,
             fields: [
                 {

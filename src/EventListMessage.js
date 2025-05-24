@@ -1,6 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import util from './util.js';
 import * as log from './log.js';
+import * as discord from './discord.js';
 
 /**
   * @typedef {import('discord.js').Message} Message
@@ -79,12 +80,14 @@ export class EventListMessage {
       * @async
      **/
     static embed(config, events) {
-        var description = '';
+        var description_header = '';
 
-        description += '⚪ - No voters\n';
-        description += '🔵 - Not enough voters\n';
-        description += '🟢 - Threshold reached!\n';
-        description += '⚫ - Skipped\n\n';
+        description_header += '⚪ - No voters\n';
+        description_header += '🔵 - Not enough voters\n';
+        description_header += '🟢 - Threshold reached!\n';
+        description_header += '⚫ - Skipped\n\n';
+
+        var description = '';
 
         events = events.sort((a, b) => b.start - a.start); // TODO: Already sorted?
         for (const event of events) {
@@ -109,10 +112,15 @@ export class EventListMessage {
             description += `${status} [${count}/${min}] [${event.title}](${message_url}) ** - ${teams} teams - ${time}**\n`;
         }
 
+        while (description_header.length + description.length > discord.EMBED_DESCRIPTION_MAX_LENGTH) {
+            description = description.slice(description.indexOf('\n') + 1);
+            log.trac('trimming oversized embed description');
+        }
+
         return new EmbedBuilder({
             title: 'Upcoming Events',
             url: `https://discord.com/channels/${config.guild_id}/${config.channel_id_event_vote}`,
-            description,
+            description: description_header + description,
         });
     }
 };

@@ -115,4 +115,23 @@ util.stripInlineString = (str) => {
     return str.replace(/\n\s*/g, ' ');
 };
 
+/**
+  * @param {string} str
+  * @param {Number} length
+  * @returns {string}
+ **/
+util.truncateToLengthWithEllipsis = (str, length) => {
+    if (str.length <= length) {
+        return str;
+    }
+
+    const ellipsis = '...';
+
+    if (length <= 3) {
+        return ellipsis.slice(0, length);
+    }
+
+    return str.slice(0, length - ellipsis.length) + ellipsis;
+};
+
 export default util;

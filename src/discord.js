@@ -1,0 +1,1 @@
+export const EMBED_DESCRIPTION_MAX_LENGTH = 4096;
