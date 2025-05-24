@@ -127,7 +127,7 @@ util.truncateToLengthWithEllipsis = (str, length) => {
 
     const ellipsis = '...';
 
-    if (length <= 3) {
+    if (length <= ellipsis.length) {
         return ellipsis.slice(0, length);
     }
 
