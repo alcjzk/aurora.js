@@ -91,7 +91,7 @@ export class EventListMessage {
 
         events = events.sort((a, b) => b.start - a.start); // TODO: Already sorted?
         for (const event of events) {
-            const message_url = ` https://discord.com/channels/${config.guild_id}/${config.channel_id_event_vote}/${event.message_id}`;
+            const message_url = event.messageUrl(config);
             const min = config.threshold_event_participants;
             const count = event.attending_ids.length;
 

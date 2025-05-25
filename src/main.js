@@ -85,7 +85,7 @@ const onReaction = async (ctx, reaction_event) => {
 
     await event.updateAttendingIds(ctx.config, ctx.db, ctx.client, ids);
     if (ids.length === ctx.config.threshold_event_participants) {
-        await event.notifyParticipantThresholdReached(ctx.config, ctx.db, ctx.client);
+        await event.notifyParticipantThresholdReached(ctx);
     }
 
     const events = await Event.selectAll(ctx.db);

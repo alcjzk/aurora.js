@@ -68,7 +68,7 @@ export const SkipEventCommand = {
             return true;
         }
 
-        await event.skip(ctx.config, ctx.db, ctx.client);
+        await event.skip(ctx);
 
         await util.interactionReplyEphemeralText(
             interaction,

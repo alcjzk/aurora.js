@@ -63,7 +63,7 @@ export const StartEventCommand = {
             }
         }
 
-        await event.doStart(ctx.config, ctx.db, ctx.client, true);
+        await event.doStart(ctx, true);
         await util.interactionReplyEphemeralText(interaction, 'Event started!');
 
         return true;

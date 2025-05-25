@@ -1,12 +1,15 @@
-import { ChannelType } from 'discord.js';
+import { ChannelType, GuildScheduledEventPrivacyLevel, GuildScheduledEventEntityType } from 'discord.js';
 import util from './util.js';
 import templates from './templates.js';
 import * as log from './log.js';
+import * as discord from './discord.js';
 
 /**
   * @typedef {import('discord.js').Message} Message
   * @typedef {import('discord.js').Client} Client
   * @typedef {import('discord.js').TextChannel} TextChannel
+  * @typedef {import('discord.js').Snowflake} Snowflake
+  * @typedef {import('discord.js').GuildScheduledEvent} GuildScheduledEvent
   * @typedef {import('sqlite').Database} Database
   * @typedef {import('./Config.js').Config} Config
   * @typedef {import('./Context.js').Context} Context
@@ -24,11 +27,11 @@ class Event {
     end;
     /** @type {string} */
     url;
-    /** @type {string} */
+    /** @type {Snowflake | undefined} */
     message_id;
-    /** @type {string} */
+    /** @type {Snowflake | undefined} */
     channel_id;
-    /** @type {string[]} */
+    /** @type {Snowflake[]} */
     attending_ids;
     /** @type {boolean} */
     is_started;
@@ -38,6 +41,67 @@ class Event {
     is_notified;
     /** @type {Number} */
     participant_count;
+    /** @type {Snowflake | undefined} */
+    guild_scheduled_event_id;
+    /** @type {string | undefined} */
+    description;
+
+    /**
+      * @param {Context} ctx
+      * @returns {Promise<GuildScheduledEvent>}
+      * @throws
+     **/
+    async createGuildScheduledEvent(ctx) {
+        log.trac(`creating guild scheduled event for event '${this.title}'`);
+
+        const guild = ctx.guild();
+
+        const GUILD_SCHEDULED_EVENT_MAX_DESCRIPTION_LENGTH = 1000;
+
+        /** @type {import('discord.js').GuildScheduledEventCreateOptions)} */
+        const create_options = {};
+        create_options.name = this.title;
+        create_options.privacyLevel = GuildScheduledEventPrivacyLevel.GuildOnly;
+        create_options.scheduledStartTime = this.start * 1000;
+        create_options.scheduledEndTime = this.end * 1000;
+        create_options.entityType = GuildScheduledEventEntityType.External;
+        create_options.entityMetadata = { location: this.messageUrl(ctx.config) };
+        create_options.description = this.description === undefined ? undefined :
+            util.truncateToLengthWithEllipsis(this.description, GUILD_SCHEDULED_EVENT_MAX_DESCRIPTION_LENGTH);
+
+        const scheduled_event = await guild.scheduledEvents.create(create_options);
+
+        this.guild_scheduled_event_id = scheduled_event.id;
+        await this.update(ctx.db);
+
+        return scheduled_event;
+    }
+    /**
+      * @param {Context} ctx
+      * @throws
+      * @returns {Promise<GuildScheduledEvent | undefined>}
+     **/
+    async guildScheduledEvent(ctx) {
+        log.trac(`fetching guild scheduled event with id '${this.guild_scheduled_event_id}'`);
+
+        const guild = ctx.guild();
+
+        if (this.guild_scheduled_event_id === undefined) {
+            return undefined;
+        }
+
+        return await guild.scheduledEvents.fetch(this.guild_scheduled_event_id);
+    }
+    /**
+      * @param {Context} ctx
+      * @throws
+      * @async
+     **/
+    async deleteGuildScheduledEvent(ctx) {
+        log.trac(`deleting guild scheduled event for event '${this.title}'`);
+        const scheduled_event = await this.guildScheduledEvent(ctx);
+        await scheduled_event?.delete();
+    }
     /**
       * @returns {boolean}
      **/
@@ -45,24 +109,23 @@ class Event {
         return util.now() > this.end;
     }
     /**
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
+      * @throws
       * @async
      **/
-    async notifyParticipantThresholdReached(config, db, client) {
+    async notifyParticipantThresholdReached(ctx) {
         if (this.is_notified) {
             return;
         }
 
-        const message = await this.message(config, client);
+        const message = await this.message(ctx.config, ctx.client);
 
         this.is_notified = true;
-        await this.update(db);
+        await this.update(ctx.db);
 
         for (const id of this.attending_ids) {
             try {
-                const dm_channel = await client.users.createDM(id);
+                const dm_channel = await ctx.client.users.createDM(id);
                 await dm_channel.send(templates.participantThresholdReached(this.title, this.start, message.url));
             }
             catch (error) {
@@ -70,6 +133,8 @@ class Event {
                 console.warn(error);
             }
         }
+
+        await this.createGuildScheduledEvent(ctx);
     }
     /**
       * @param {Context} ctx
@@ -83,7 +148,7 @@ class Event {
 
         if (this.attending_ids.length < ctx.config.threshold_event_participants) {
             log.info(`event '${this.title}' does not have enough participants and wont be started automatically`);
-            await this.skip(ctx.config, ctx.db, ctx.client);
+            await this.skip(ctx);
             return;
         }
 
@@ -94,19 +159,17 @@ class Event {
 
         log.info(`starting event '${this.title}'`);
 
-        await this.doStart(ctx.config, ctx.db, ctx.client, false);
+        await this.doStart(ctx, false);
     }
     /**
       * Start the event.
       *
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @param {boolean} force - start the event regardless of being skipped
       * @throws If the event was already started or has ended.
       * @async
      **/
-    async doStart(config, db, client, force) {
+    async doStart(ctx, force) {
         if (this.is_started) {
             throw Error('Event was already started');
         }
@@ -115,7 +178,9 @@ class Event {
             return;
         }
 
-        const channel = await client.guilds.cache.get(config.guild_id).channels.create({
+        const guild = ctx.guild();
+
+        const channel = await guild.channels.create({
             type: ChannelType.GuildText,
             name: this.title,
         });
@@ -124,17 +189,23 @@ class Event {
         this.is_started = true;
         this.is_skipped = false;
 
-        await this.update(db);
+        await this.update(ctx.db);
 
         const mentions = this.attending_ids.map(id => `<@${id}>`).join(' ');
         const message_content = `${this.title} is starting soon!\n${mentions}`;
         await channel.send(message_content);
 
-        const message = await this.message(config, client);
+        const message = await this.message(ctx.config, ctx.client);
         var embed = util.setEmbedFieldByName(message.embeds[0], 'Status', `Started <#${channel.id}>`, false);
         embed = util.setEmbedColor(embed, 0x2FDE5D);
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
+
+        const guild_scheduled_event = this.guild_scheduled_event_id === undefined
+            ? await this.createGuildScheduledEvent(ctx)
+            : await this.guildScheduledEvent(ctx);
+
+        await guild_scheduled_event?.setLocation(`<#${channel.id}>`);
     }
     /**
       * Deletes the event and updates or deletes the associated message.
@@ -166,20 +237,18 @@ class Event {
     /**
       * Disable voting for the event and prevent automatic start.
       *
-      * @param {Config} config
-      * @param {Database} db
-      * @param {Client} client
+      * @param {Context} ctx
       * @return {Promise<bool>} true if the event was succesfully marked skipped.
      **/
-    async skip(config, db, client) {
+    async skip(ctx) {
         if (this.is_skipped | this.is_started | this.shouldExpire()) {
             return false;
         }
 
         this.is_skipped = true;
-        await this.update(db);
+        await this.update(ctx.db);
 
-        const message = await this.message(config, client);
+        const message = await this.message(ctx.config, ctx.client);
 
         if (message === undefined) {
             return true;
@@ -189,6 +258,7 @@ class Event {
         embed = util.setEmbedColor(embed, 0x8A8A8A);
         await message.edit({ embeds: [embed] });
         await message.reactions.removeAll();
+        await this.deleteGuildScheduledEvent(ctx);
     }
     /**
       * @param {Config} config
@@ -303,6 +373,16 @@ class Event {
         return message;
     }
     /**
+      * @param {Config} config
+      * @returns {Snowflake | undefined}
+      **/
+    messageUrl(config) {
+        if (!this.message_id) {
+            return undefined;
+        }
+        return discord.messageUrl(config.guild_id, config.channel_id_event_vote, this.message_id);
+    }
+    /**
       * @param {Client} client
       * @returns {Promise<Channel | undefined>}
      **/
@@ -332,9 +412,11 @@ class Event {
                     is_started,
                     is_skipped,
                     is_notified,
-                    participant_count
+                    participant_count,
+                    guild_scheduled_event_id,
+                    description
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const { changes } = await stmt.run(
@@ -350,6 +432,8 @@ class Event {
                 this.is_skipped,
                 this.is_notified,
                 this.participant_count,
+                this.guild_scheduled_event_id,
+                this.description,
             );
 
             if (changes !== 1) {
@@ -379,7 +463,9 @@ class Event {
                     is_started = ?,
                     is_skipped = ?,
                     is_notified = ?,
-                    participant_count = ?
+                    participant_count = ?,
+                    guild_scheduled_event_id = ?,
+                    description = ?
                 WHERE id = ?
             `);
 
@@ -395,6 +481,8 @@ class Event {
                 this.is_skipped,
                 this.is_notified,
                 this.participant_count,
+                this.guild_scheduled_event_id,
+                this.description,
                 this.id,
             );
 
@@ -437,6 +525,8 @@ class Event {
         return raw_events.map(r => {
             const event = Object.assign(new Event, r);
             event.attending_ids = JSON.parse(event.attending_ids);
+            event.guild_scheduled_event_id = event.guild_scheduled_event_id === null ? undefined : event.guild_scheduled_event_id;
+            event.description = event.description === null ? undefined : event.description;
             return event;
         });
     }
@@ -454,6 +544,8 @@ class Event {
         }
         const event = Object.assign(new Event, raw_event);
         event.attending_ids = JSON.parse(event.attending_ids);
+        event.guild_scheduled_event_id = event.guild_scheduled_event_id === null ? undefined : event.guild_scheduled_event_id;
+        event.description = event.description === null ? undefined : event.description;
         return event;
     }
 
@@ -480,6 +572,8 @@ class Event {
         }
         const event = Object.assign(new Event(), raw_event);
         event.attending_ids = JSON.parse(event.attending_ids);
+        event.guild_scheduled_event_id = event.guild_scheduled_event_id === null ? undefined : event.guild_scheduled_event_id;
+        event.description = event.description === null ? undefined : event.description;
         return event;
     }
 
@@ -501,6 +595,7 @@ class Event {
         event.is_notified = false;
         event.participant_count = data.participants;
         event.attending_ids = [];
+        event.description = data.description;
 
         return event;
     }
