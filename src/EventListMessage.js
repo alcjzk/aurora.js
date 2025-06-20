@@ -99,7 +99,7 @@ export class EventListMessage {
             if (count > 0) {
                 status = '🔵';
             }
-            if (count > config.threshold_event_participants) {
+            if (count >= config.threshold_event_participants) {
                 status = '🟢';
             }
             if (event.is_skipped) {
