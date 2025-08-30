@@ -1,5 +1,6 @@
 import templates from './templates.js';
 import util from './util.js';
+import Event from './Event.js';
 import * as log from './log.js';
 import * as discord from './discord.js';
 
@@ -9,6 +10,19 @@ import * as discord from './discord.js';
   * @typedef {import('discord.js').Message} Message
   * @typedef {import('discord.js').Snowflake} Snowflake
  **/
+
+
+const toUnixTimestamp = (dtStr) => {
+    const year = dtStr.slice(0, 4);
+    const month = dtStr.slice(4, 6);
+    const day = dtStr.slice(6, 8);
+    const hour = dtStr.slice(9, 11);
+    const minute = dtStr.slice(11, 13);
+    const second = dtStr.slice(13, 15);
+
+    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    return Math.floor(date.getTime() / 1000);
+};
 
 export class Organizer {
     /** @type {Number} */
@@ -54,36 +68,35 @@ export class EventData {
       * @returns {Embed}
      **/
     toEmbed() {
-        const description = templates.eventDescription(this);
         return {
-            title: this.title,
-            url: this.ctftime_url,
-            description: util.truncateToLengthWithEllipsis(description, discord.EMBED_DESCRIPTION_MAX_LENGTH),
+            title: this.summary,
+            url: this.description.split("\n")[0],
+            description: util.truncateToLengthWithEllipsis(this.description, discord.EMBED_DESCRIPTION_MAX_LENGTH),
             color: 0x2061F7,
             fields: [
                 {
                     name: 'Teams',
-                    value: this.participants,
+                    value: '',
                     inline: true,
                 },
                 {
                     name: 'Onsite',
-                    value: this.onsite ? 'yes' : 'no',
+                    value: 'no',
                     inline: true,
                 },
                 {
                     name: 'Restrictions',
-                    value: this.restrictions,
+                    value: '',
                     inline: true,
                 },
                 {
                     name: 'Format',
-                    value: this.format,
+                    value: 'Game Jam',
                     inline: true,
                 },
                 {
                     name: 'Organizers',
-                    value: this.organizers.map(o => o.name).join(', '),
+                    value: '',
                     inline: true,
                 },
                 {
@@ -94,6 +107,30 @@ export class EventData {
             ],
         }
     }
+
+    /**
+      * @param {indiegamejams.EventData} data
+      * @returns {Event}
+     **/
+    toEvent() {
+
+
+
+        const event = new Event();
+        event.id = util.stringIdToNumber(this.uid);
+        event.title = this.summary;
+        event.start = toUnixTimestamp(this.dtstart);
+        event.end = toUnixTimestamp(this.dtend);
+        event.url = this.description.split("\n")[0];
+        event.is_started = false;
+        event.is_skipped = false;
+        event.is_notified = false;
+        event.participant_count = 69;
+        event.attending_ids = [];
+
+        return event;
+    }
+
     /**
       * @param {Client} client
       * @param {Snowflake} channel_id

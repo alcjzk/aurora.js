@@ -483,47 +483,6 @@ class Event {
         event.attending_ids = JSON.parse(event.attending_ids);
         return event;
     }
-
-    /**
-      * @param {ctftime.EventData} data
-      * @returns {Event}
-     **/
-    static fromCtfData(data) {
-        const event = new Event();
-
-        event.id = data.id;
-        event.title = data.title;
-        event.start = util.stringToTimestamp(data.start);
-        event.end = util.stringToTimestamp(data.finish);
-        event.url = data.url;
-        event.is_started = false;
-        event.is_skipped = false;
-        event.is_notified = false;
-        event.participant_count = data.participants;
-        event.attending_ids = [];
-
-        return event;
-    }
-
-    /**
-      * @param {indiegamejams.EventData} data
-      * @returns {Event}
-     **/
-    static fromGameJamData(data) {
-        const event = new Event();
-        event.id = util.stringIdToNumber(data.uid);
-        event.title = data.summary;
-        event.start = util.stringToTimestamp(data.dtstart);
-        event.end = util.stringToTimestamp(data.dtend);
-        event.url = data.description.split("\n")[0];
-        event.is_started = false;
-        event.is_skipped = false;
-        event.is_notified = false;
-        event.participant_count = 69;
-        event.attending_ids = [];
-
-        return event;
-    }
 }
 
 export default Event;

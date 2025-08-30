@@ -1,4 +1,5 @@
 import templates from './templates.js';
+import Event from './Event.js';
 import util from './util.js';
 import * as log from './log.js';
 import * as discord from './discord.js';
@@ -114,6 +115,26 @@ export class EventData {
             ],
         }
     }
+    /**
+     * @returns {Event}
+     **/
+    toEvent() {
+        const event = new Event();
+
+        event.id = this.id;
+        event.title = this.title;
+        event.start = util.stringToTimestamp(this.start);
+        event.end = util.stringToTimestamp(this.finish);
+        event.url = this.url;
+        event.is_started = false;
+        event.is_skipped = false;
+        event.is_notified = false;
+        event.participant_count = this.participants;
+        event.attending_ids = [];
+
+        return event;
+    }
+
     /**
       * @param {Client} client
       * @param {Snowflake} channel_id

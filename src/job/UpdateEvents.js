@@ -3,6 +3,7 @@ import Event from '../Event.js';
 import util from '../util.js';
 import * as log from '../log.js';
 import * as ctftime from '../ctftime.js';
+import * as indiegamejams from '../indiegamejams.js';
 
 /**
   * @typedef {import('../Context.js').Context} Context
@@ -43,11 +44,7 @@ export class UpdateEvents extends Job {
                 ctx.config.max_events_per_fetch,
             );
 
-            const api_events_game_jam = await ctftime.fetchEvents(
-                util.dateToTimestamp(from),
-                util.dateToTimestamp(to),
-                ctx.config.max_events_per_fetch,
-            );
+            const api_events_game_jam = await indiegamejams.fetchEvents();
 
             const saved_events = await Event.selectAll(ctx.db);
 
@@ -62,7 +59,7 @@ export class UpdateEvents extends Job {
                 handleNewEvent(ctx, api_event);
             }
 
-            for (const api_event of api_events_game_jams) {
+            for (const api_event of api_events_game_jam) {
                 var event = saved_events.find(e => e.id == util.stringIdToNumber(api_event.uid));
 
                 if (event !== undefined) {
@@ -85,26 +82,25 @@ export class UpdateEvents extends Job {
             }
         }
     }
-
-    /**
-      * @param {Context} ctx
-      * @async
-     **/
-    static async handleNewEvent(ctx, api_event)
-    {
-        const event = Event.fromData(api_event);
-
-        if (!ctx.config.skip_post_new_events) {
-            const message = await api_event.createMessage(ctx.client, ctx.config.channel_id_event_vote);
-            await message.react(ctx.config.emoji_vote);
-            event.message_id = message.id;
-        }
-
-        await event.insert(ctx.db);
-
-        log.info(`new event '${event.title}`);
-
-        await event.schedule(ctx);
-    }
 }
 
+/**
+ * @param {Context} ctx
+ * @param {ctftime.EventData | indiegamejams.EventData} api_event
+ * @async
+ **/
+const handleNewEvent = async (ctx, api_event) => {
+    const event = api_event.toEvent();
+
+    if (!ctx.config.skip_post_new_events) {
+        const message = await api_event.createMessage(ctx.client, ctx.config.channel_id_event_vote);
+        await message.react(ctx.config.emoji_vote);
+        event.message_id = message.id;
+    }
+
+    await event.insert(ctx.db);
+
+    log.info(`new event '${event.title}`);
+
+    await event.schedule(ctx);
+};
