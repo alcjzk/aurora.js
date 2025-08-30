@@ -10,7 +10,8 @@ import * as log from './log.js';
   * @typedef {import('sqlite').Database} Database
   * @typedef {import('./Config.js').Config} Config
   * @typedef {import('./Context.js').Context} Context
-  * @typedef {import('./ctftime.js').EventData} EventData
+  * @typedef {import('./ctftime.js')} ctftime
+  * @typedef {import('./indiegamejams.js')} indiegamejams
  **/
 
 class Event {
@@ -484,11 +485,10 @@ class Event {
     }
 
     /**
-      * @param {Database} db
-      * @param {EventData} data
+      * @param {ctftime.EventData} data
       * @returns {Event}
      **/
-    static fromData(data) {
+    static fromCtfData(data) {
         const event = new Event();
 
         event.id = data.id;
@@ -500,6 +500,26 @@ class Event {
         event.is_skipped = false;
         event.is_notified = false;
         event.participant_count = data.participants;
+        event.attending_ids = [];
+
+        return event;
+    }
+
+    /**
+      * @param {indiegamejams.EventData} data
+      * @returns {Event}
+     **/
+    static fromGameJamData(data) {
+        const event = new Event();
+        event.id = util.stringIdToNumber(data.uid);
+        event.title = data.summary;
+        event.start = util.stringToTimestamp(data.dtstart);
+        event.end = util.stringToTimestamp(data.dtend);
+        event.url = data.description.split("\n")[0];
+        event.is_started = false;
+        event.is_skipped = false;
+        event.is_notified = false;
+        event.participant_count = 69;
         event.attending_ids = [];
 
         return event;

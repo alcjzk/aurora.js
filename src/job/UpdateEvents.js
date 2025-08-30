@@ -37,14 +37,21 @@ export class UpdateEvents extends Job {
             var to = new Date();
             to.setDate(to.getDate() + fetch_event_span_days);
 
-            const api_events = await ctftime.fetchEvents(
+            const api_events_ctf = await ctftime.fetchEvents(
                 util.dateToTimestamp(from),
                 util.dateToTimestamp(to),
                 ctx.config.max_events_per_fetch,
             );
+
+            const api_events_game_jam = await ctftime.fetchEvents(
+                util.dateToTimestamp(from),
+                util.dateToTimestamp(to),
+                ctx.config.max_events_per_fetch,
+            );
+
             const saved_events = await Event.selectAll(ctx.db);
 
-            for (const api_event of api_events) {
+            for (const api_event of api_events_ctf) {
                 var event = saved_events.find(e => e.id == api_event.id);
 
                 if (event !== undefined) {
@@ -52,19 +59,18 @@ export class UpdateEvents extends Job {
                     continue;
                 }
 
-                event = Event.fromData(api_event);
+                handleNewEvent(ctx, api_event);
+            }
 
-                if (!ctx.config.skip_post_new_events) {
-                    const message = await api_event.createMessage(ctx.client, ctx.config.channel_id_event_vote);
-                    await message.react(ctx.config.emoji_vote);
-                    event.message_id = message.id;
+            for (const api_event of api_events_game_jams) {
+                var event = saved_events.find(e => e.id == util.stringIdToNumber(api_event.uid));
+
+                if (event !== undefined) {
+                    await event.updateParticipantCount(ctx.config, ctx.db, ctx.client, api_event.participants);
+                    continue;
                 }
 
-                await event.insert(ctx.db);
-
-                log.info(`new event '${event.title}`);
-
-                await event.schedule(ctx);
+                handleNewEvent(ctx, api_event);
             }
 
             const events = await Event.selectAll(ctx.db);
@@ -78,6 +84,27 @@ export class UpdateEvents extends Job {
                 throw error;
             }
         }
+    }
+
+    /**
+      * @param {Context} ctx
+      * @async
+     **/
+    static async handleNewEvent(ctx, api_event)
+    {
+        const event = Event.fromData(api_event);
+
+        if (!ctx.config.skip_post_new_events) {
+            const message = await api_event.createMessage(ctx.client, ctx.config.channel_id_event_vote);
+            await message.react(ctx.config.emoji_vote);
+            event.message_id = message.id;
+        }
+
+        await event.insert(ctx.db);
+
+        log.info(`new event '${event.title}`);
+
+        await event.schedule(ctx);
     }
 }
 
