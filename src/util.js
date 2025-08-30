@@ -134,4 +134,13 @@ util.truncateToLengthWithEllipsis = (str, length) => {
     return str.slice(0, length - ellipsis.length) + ellipsis;
 };
 
+util.stringIdToNumber = (str) => {
+    let hash = 0;
+    const prime = 31;
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash * prime + str.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+};
+
 export default util;

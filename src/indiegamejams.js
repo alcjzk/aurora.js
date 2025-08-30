@@ -1,6 +1,6 @@
 import templates from './templates.js';
-import Event from './Event.js';
 import util from './util.js';
+import Event from './Event.js';
 import * as log from './log.js';
 import * as discord from './discord.js';
 
@@ -10,6 +10,19 @@ import * as discord from './discord.js';
   * @typedef {import('discord.js').Message} Message
   * @typedef {import('discord.js').Snowflake} Snowflake
  **/
+
+
+const toUnixTimestamp = (dtStr) => {
+    const year = dtStr.slice(0, 4);
+    const month = dtStr.slice(4, 6);
+    const day = dtStr.slice(6, 8);
+    const hour = dtStr.slice(9, 11);
+    const minute = dtStr.slice(11, 13);
+    const second = dtStr.slice(13, 15);
+
+    const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    return Math.floor(date.getTime() / 1000);
+};
 
 export class Organizer {
     /** @type {Number} */
@@ -26,85 +39,64 @@ export class Duration {
 }
 
 export class EventData {
-    /** @type {Organizer[]} */
-    organizers;
     /** @type {string} */
-    ctftime_url;
-    /** @type {Number} */
-    ctf_id;
-    /** @type {Number} */
-    weight;
-    /** @type {Duration} */
-    duration;
-    /** @type {String} */
-    live_feed;
-    /** @type {String} */
-    logo;
-    /** @type {Number} */
-    id;
+    dtstart;
     /** @type {string} */
-    title;
+    dtend;
     /** @type {string} */
-    start;
+    dtstamp;
     /** @type {string} */
-    finish;
-    /** @type {Number} */
-    participants;
+    uid;
     /** @type {string} */
-    location;
+    created;
     /** @type {string} */
     description;
     /** @type {string} */
-    format;
-    /** @type {boolean} */
-    is_votable_now;
+    last_modified;
     /** @type {string} */
-    prizes;
-    /** @type {Number} */
-    format_id;
-    /** @type {boolean} */
-    onsite;
+    sequence;
     /** @type {string} */
-    restrictions;
+    status;
     /** @type {string} */
-    url;
-    /** @type {boolean} */
-    public_votable;
+    summary;
+    /** @type {string} */
+    transp;
+
+
     /**
       * @param {EventData} event
       * @returns {Embed}
      **/
     toEmbed() {
-        const description = templates.eventDescription(this);
         return {
-            title: this.title,
-            url: this.ctftime_url,
-            description: util.truncateToLengthWithEllipsis(description, discord.EMBED_DESCRIPTION_MAX_LENGTH),
+            title: this.summary,
+            url: this.description.split("\n")[0],
+            description: util.truncateToLengthWithEllipsis(this.description, discord.EMBED_DESCRIPTION_MAX_LENGTH),
             color: 0x2061F7,
             fields: [
                 {
                     name: 'Teams',
-                    value: this.participants,
+                    value: '',
                     inline: true,
                 },
                 {
                     name: 'Onsite',
-                    value: this.onsite ? 'yes' : 'no',
+                    value: 'no',
                     inline: true,
                 },
                 {
                     name: 'Restrictions',
-                    value: this.restrictions,
+                    value: '',
                     inline: true,
                 },
                 {
                     name: 'Format',
-                    value: this.format,
+                    value: 'Game Jam',
                     inline: true,
                 },
                 {
                     name: 'Organizers',
-                    value: this.organizers.map(o => o.name).join(', '),
+                    value: '',
                     inline: true,
                 },
                 {
@@ -115,21 +107,25 @@ export class EventData {
             ],
         }
     }
+
     /**
-     * @returns {Event}
+      * @param {indiegamejams.EventData} data
+      * @returns {Event}
      **/
     toEvent() {
-        const event = new Event();
 
-        event.id = this.id;
-        event.title = this.title;
-        event.start = util.stringToTimestamp(this.start);
-        event.end = util.stringToTimestamp(this.finish);
-        event.url = this.url;
+
+
+        const event = new Event();
+        event.id = util.stringIdToNumber(this.uid);
+        event.title = this.summary;
+        event.start = toUnixTimestamp(this.dtstart);
+        event.end = toUnixTimestamp(this.dtend);
+        event.url = this.description.split("\n")[0];
         event.is_started = false;
         event.is_skipped = false;
         event.is_notified = false;
-        event.participant_count = this.participants;
+        event.participant_count = 69;
         event.attending_ids = [];
 
         return event;
@@ -171,23 +167,29 @@ export class EventData {
     }
 }
 /**
-  * @param {Number} from - timestamp
-  * @param {Number} to - timestamp
-  * @param {Number} limit
   * @returns {Promise<EventData[]>}
  **/
-export const fetchEvents = async (from, to, limit) => {
+export const fetchEvents = async () => {
     try {
-        const url = `https://ctftime.org/api/v1/events/?limit=${limit}&start=${from}&finish=${to}`;
+        const url = "https://indiegamejams.com/calfeed/";
         const response = await fetch(url);
         const json = await response.json();
+
         /** @type {EventData[]} */
         const events = json.map(data => {
             const event = Object.assign(new EventData(), data);
+            if (event.dtstart === undefined) {
+                const key = Object.keys(data).find(k => k.startsWith("dtstart"));
+                event.dtstart = data[key];
+            }
+            if (event.dtend === undefined) {
+                const key = Object.keys(data).find(k => k.startsWith("dtend"));
+                event.dtend = data[key];
+            }
             return event;
         });
-
-        events.sort((a, b) => a.start - b.start);
+        events.sort((a, b) => a.dtstart.localeCompare(b.dtstart));
+        console.log(events);
 
         return events;
     }
@@ -196,4 +198,4 @@ export const fetchEvents = async (from, to, limit) => {
         console.error(error);
         return [];
     }
-};
+}
