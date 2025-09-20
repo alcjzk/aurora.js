@@ -10,6 +10,8 @@ import commands from './commands.js';
 import process from 'node:process';
 import fs from 'fs/promises';
 import * as log from './log.js';
+import { EventFlag } from './EventFlag.js';
+import { migrate_event_flags } from '../scripts/migrate_event_flags.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -74,7 +76,7 @@ const onReaction = async (ctx, reaction_event) => {
         return;
     }
 
-    if (event.is_started || event.is_skipped || event.shouldExpire()) {
+    if (event.flags.isSet(EventFlag.IsStarted | EventFlag.IsSkipped) || event.shouldExpire()) {
         return;
     }
 
@@ -135,6 +137,17 @@ const onStart = async () => {
     });
     await db.migrate();
     await config.load(db);
+
+    if (!config.migrate_flags_done) {
+        if (!await migrate_event_flags(db)) {
+            process.exit(1);
+        }
+
+        config.set(db, 'migrate_flags_done', 'true');
+    }
+    else {
+        log.info('flags migration already complete');
+    }
 
     const count = await Event.count(db);
 

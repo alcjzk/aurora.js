@@ -1,6 +1,7 @@
 import { ApplicationCommandType, InteractionContextType, PermissionFlagsBits } from 'discord.js';
 import Event from '../Event.js';
 import util from '../util.js';
+import { EventFlag } from '../EventFlag.js';
 
 /**
   * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
@@ -33,7 +34,7 @@ export const StartEventCommand = {
             return true;
         }
 
-        if (event.is_started) {
+        if (event.flags.isSet(EventFlag.IsStarted)) {
             await util.interactionReplyEphemeralText(interaction, 'This event was already started.');
             return true;
         }

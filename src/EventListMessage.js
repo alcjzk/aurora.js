@@ -2,6 +2,7 @@ import { EmbedBuilder } from 'discord.js';
 import util from './util.js';
 import * as log from './log.js';
 import * as discord from './discord.js';
+import { EventFlag } from './EventFlag.js';
 
 /**
   * @typedef {import('discord.js').Message} Message
@@ -102,7 +103,7 @@ export class EventListMessage {
             if (count >= config.threshold_event_participants) {
                 status = '🟢';
             }
-            if (event.is_skipped) {
+            if (event.flags.isSet(EventFlag.IsSkipped)) {
                 status = '⚫';
             }
 

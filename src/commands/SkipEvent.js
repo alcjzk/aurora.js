@@ -1,6 +1,7 @@
 import { ApplicationCommandType, InteractionContextType, PermissionFlagsBits } from 'discord.js';
 import Event from '../Event.js';
 import util from '../util.js';
+import { EventFlag } from '../EventFlag.js';
 
 /**
   * @typedef {import('discord.js').ApplicationCommand} ApplicationCommand
@@ -41,7 +42,7 @@ export const SkipEventCommand = {
             return true;
         }
 
-        if (event.is_skipped) {
+        if (event.flags.isSet(EventFlag.IsSkipped)) {
             await util.interactionReplyEphemeralText(
                 interaction,
                 'This event is already skipped.',
@@ -50,7 +51,7 @@ export const SkipEventCommand = {
             return true;
         }
 
-        if (event.is_started) {
+        if (event.flags.isSet(EventFlag.IsStarted)) {
             await util.interactionReplyEphemeralText(
                 interaction,
                 'Cannot skip an event that was already started.',
