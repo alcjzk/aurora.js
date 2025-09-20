@@ -11,7 +11,7 @@ import process from 'node:process';
 import fs from 'fs/promises';
 import * as log from './log.js';
 import { EventFlag } from './EventFlag.js';
-import { migrate_event_flags } from '../migrate_event_flags.js';
+import { migrate_event_flags } from './migrate_event_flags.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
