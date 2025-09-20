@@ -33,12 +33,6 @@ class Event {
     channel_id;
     /** @type {string[]} */
     attending_ids;
-    /** @type {boolean} @deprecated to be removed, use flags instead */
-    is_started;
-    /** @type {boolean} @deprecated to be removed, use flags instead */
-    is_skipped;
-    /** @type {boolean} @deprecated to be removed, use flags instead */
-    is_notified;
     /** @type {Number} */
     participant_count;
     /** @type {Bitflags} */
@@ -334,13 +328,10 @@ class Event {
                     message_id,
                     channel_id,
                     attending_ids,
-                    is_started,
-                    is_skipped,
-                    is_notified,
                     participant_count,
                     flags
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const { changes } = await stmt.run(
@@ -352,9 +343,6 @@ class Event {
                 this.message_id,
                 this.channel_id,
                 JSON.stringify(this.attending_ids),
-                this.is_started,
-                this.is_skipped,
-                this.is_notified,
                 this.participant_count,
                 this.flags.toNumber(),
             );
@@ -383,9 +371,6 @@ class Event {
                     message_id = ?,
                     channel_id = ?,
                     attending_ids = ?,
-                    is_started = ?,
-                    is_skipped = ?,
-                    is_notified = ?,
                     participant_count = ?,
                     flags = ?
                 WHERE id = ?
@@ -399,9 +384,6 @@ class Event {
                 this.message_id,
                 this.channel_id,
                 JSON.stringify(this.attending_ids),
-                this.is_started,
-                this.is_skipped,
-                this.is_notified,
                 this.participant_count,
                 this.flags.toNumber(),
                 this.id,
@@ -491,6 +473,7 @@ class Event {
         }
         const event = Object.assign(new Event(), raw_event);
         event.attending_ids = JSON.parse(event.attending_ids);
+        event.flags = new Bitflags(event.flags);
         return event;
     }
 
@@ -507,9 +490,6 @@ class Event {
         event.start = util.stringToTimestamp(data.start);
         event.end = util.stringToTimestamp(data.finish);
         event.url = data.url;
-        event.is_started = false;
-        event.is_skipped = false;
-        event.is_notified = false;
         event.participant_count = data.participants;
         event.attending_ids = [];
         event.flags = new Bitflags();

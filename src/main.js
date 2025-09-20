@@ -11,7 +11,6 @@ import process from 'node:process';
 import fs from 'fs/promises';
 import * as log from './log.js';
 import { EventFlag } from './EventFlag.js';
-import { migrate_event_flags } from './migrate_event_flags.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -137,17 +136,6 @@ const onStart = async () => {
     });
     await db.migrate();
     await config.load(db);
-
-    if (!config.migrate_flags_done) {
-        if (!await migrate_event_flags(db)) {
-            process.exit(1);
-        }
-
-        config.set(db, 'migrate_flags_done', 'true');
-    }
-    else {
-        log.info('flags migration already complete');
-    }
 
     const count = await Event.count(db);
 

@@ -18,7 +18,6 @@ export const DEFAULT_S_MIN_TIME_ALLOW_START = 60 * 60 * 12;
 export const DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS = 2;
 export const DEFAULT_DATABASE_PATH = './db.sqlite3';
 export const DEFAULT_DEBUG_MODE = false;
-export const DEFAULT_MIGRATE_FLAGS_DONE = false;
 
 export class Config extends EventEmitter {
     /**
@@ -103,12 +102,6 @@ export class Config extends EventEmitter {
      **/
     database_path;
     /**
-      * Temporary option used to determine if flags migration is completed.
-      * @type {boolean}
-      * @deprecated to be removed, do not use
-     **/
-    migrate_flags_done;
-    /**
       * Callback triggered when config is updated.
       * @type {function}
      **/
@@ -148,7 +141,6 @@ export class Config extends EventEmitter {
         this.threshold_manual_start_participants = DEFAULT_THRESHOLD_MANUAL_START_PARTICIPANTS;
         this.database_path = env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH;
         this.debug_mode = env.DEBUG_MODE ?? DEFAULT_DEBUG_MODE;
-        this.migrate_flags_done = DEFAULT_MIGRATE_FLAGS_DONE;
 
         this.#is_initialized = false;
     }
@@ -166,7 +158,6 @@ export class Config extends EventEmitter {
         const map = await db.all('SELECT key, value FROM config');
 
         this.channel_id_event_vote = map.find(e => e.key == 'channel_id_event_vote')?.value;
-        this.migrate_flags_done = map.find(e => e.key == 'migrate_flags_done')?.value == 'true' ?? DEFAULT_MIGRATE_FLAGS_DONE;
 
         this.on_update = () => this.emit(Config.UPDATED, this);
         if (this.channel_id_event_vote === undefined) {
