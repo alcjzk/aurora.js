@@ -10,6 +10,7 @@ import commands from './commands.js';
 import process from 'node:process';
 import fs from 'fs/promises';
 import * as log from './log.js';
+import { EventFlag } from './EventFlag.js';
 
 // TODO: Make use of partials?
 // TODO: Allow configuring admin role
@@ -74,7 +75,7 @@ const onReaction = async (ctx, reaction_event) => {
         return;
     }
 
-    if (event.is_started || event.is_skipped || event.shouldExpire()) {
+    if (event.flags.isSet(EventFlag.IsStarted | EventFlag.IsSkipped) || event.shouldExpire()) {
         return;
     }
 

@@ -2,6 +2,8 @@ import { ChannelType } from 'discord.js';
 import util from './util.js';
 import templates from './templates.js';
 import * as log from './log.js';
+import { EventFlag } from './EventFlag.js';
+import { Bitflags } from './Bitflags.js';
 
 /**
   * @typedef {import('discord.js').Message} Message
@@ -11,6 +13,7 @@ import * as log from './log.js';
   * @typedef {import('./Config.js').Config} Config
   * @typedef {import('./Context.js').Context} Context
   * @typedef {import('./ctftime.js').EventData} EventData
+  * @typedef {import('./EventFlag.js').EventFlag} EventFlag
  **/
 
 class Event {
@@ -30,14 +33,16 @@ class Event {
     channel_id;
     /** @type {string[]} */
     attending_ids;
-    /** @type {boolean} */
+    /** @type {boolean} @deprecated to be removed, use flags instead */
     is_started;
-    /** @type {boolean} */
+    /** @type {boolean} @deprecated to be removed, use flags instead */
     is_skipped;
-    /** @type {boolean} */
+    /** @type {boolean} @deprecated to be removed, use flags instead */
     is_notified;
     /** @type {Number} */
     participant_count;
+    /** @type {Bitflags} */
+    flags;
     /**
       * @returns {boolean}
      **/
@@ -51,13 +56,13 @@ class Event {
       * @async
      **/
     async notifyParticipantThresholdReached(config, db, client) {
-        if (this.is_notified) {
+        if (this.flags.isSet(EventFlag.IsNotified)) {
             return;
         }
 
         const message = await this.message(config, client);
 
-        this.is_notified = true;
+        this.flags.set(EventFlag.IsNotified);
         await this.update(db);
 
         for (const id of this.attending_ids) {
@@ -76,7 +81,7 @@ class Event {
       * @async
      **/
     async tryStart(ctx) {
-        if (this.is_skipped) {
+        if (this.flags.isSet(EventFlag.IsSkipped)) {
             log.info(`event '${this.title}' is marked as skipped and wont be started automatically`);
             return;
         }
@@ -87,7 +92,7 @@ class Event {
             return;
         }
 
-        if (this.is_started) {
+        if (this.flags.isSet(EventFlag.IsStarted)) {
             log.warn(`event '${this.title}' has already been started`);
             return;
         }
@@ -107,11 +112,11 @@ class Event {
       * @async
      **/
     async doStart(config, db, client, force) {
-        if (this.is_started) {
+        if (this.flags.isSet(EventFlag.IsStarted)) {
             throw Error('Event was already started');
         }
 
-        if (this.is_skipped && !force) {
+        if (this.flags.isSet(EventFlag.IsSkipped) && !force) {
             return;
         }
 
@@ -121,8 +126,8 @@ class Event {
         });
 
         this.channel_id = channel.id;
-        this.is_started = true;
-        this.is_skipped = false;
+        this.flags.set(EventFlag.IsStarted);
+        this.flags.unset(EventFlag.IsSkipped);
 
         await this.update(db);
 
@@ -153,7 +158,7 @@ class Event {
             return;
         }
 
-        if (!this.is_started) {
+        if (!this.flags.isSet(EventFlag.IsStarted)) {
             await message.delete();
             return;
         }
@@ -172,14 +177,14 @@ class Event {
       * @return {Promise<bool>} true if the event was succesfully marked skipped.
      **/
     async skip(config, db, client) {
-        if (this.is_skipped | this.is_started | this.shouldExpire()) {
+        if (this.flags.isSet(EventFlag.IsSkipped) || this.flags.isSet(EventFlag.IsStarted) || this.shouldExpire()) {
             return false;
         }
 
-        this.is_skipped = true;
+        this.flags.set(EventFlag.IsSkipped);
         await this.update(db);
 
-        const message = await this.message(config, client);
+        const message = await this.message(config, client); // FIXME: Event message may be left in a failed state
 
         if (message === undefined) {
             return true;
@@ -252,11 +257,11 @@ class Event {
         }
 
         // TODO:  If event is already scheduled, skip
-        if (s_until_start < 0 && s_until_end > 0 && !this.is_skipped) {
+        if (s_until_start < 0 && s_until_end > 0 && !this.flags.isSet(EventFlag.IsSkipped)) {
             log.warn(`start of event '${this.title}' was missed`);
         }
 
-        if (this.is_started) {
+        if (this.flags.isSet(EventFlag.IsStarted)) {
             return;
         }
 
@@ -271,7 +276,7 @@ class Event {
             );
         }
 
-        if (s_until_start <= ctx.config.s_interval_schedule_events && !this.is_skipped) {
+        if (s_until_start <= ctx.config.s_interval_schedule_events && !this.flags.isSet(EventFlag.IsSkipped)) {
             const timeout = Math.max(0, s_until_start - ctx.config.s_before_announce_event);
             log.info(`event '${this.title}' is scheduled to start in ${timeout} seconds`);
 
@@ -332,9 +337,10 @@ class Event {
                     is_started,
                     is_skipped,
                     is_notified,
-                    participant_count
+                    participant_count,
+                    flags
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const { changes } = await stmt.run(
@@ -350,6 +356,7 @@ class Event {
                 this.is_skipped,
                 this.is_notified,
                 this.participant_count,
+                this.flags.toNumber(),
             );
 
             if (changes !== 1) {
@@ -379,7 +386,8 @@ class Event {
                     is_started = ?,
                     is_skipped = ?,
                     is_notified = ?,
-                    participant_count = ?
+                    participant_count = ?,
+                    flags = ?
                 WHERE id = ?
             `);
 
@@ -395,6 +403,7 @@ class Event {
                 this.is_skipped,
                 this.is_notified,
                 this.participant_count,
+                this.flags.toNumber(),
                 this.id,
             );
 
@@ -501,6 +510,7 @@ class Event {
         event.is_notified = false;
         event.participant_count = data.participants;
         event.attending_ids = [];
+        event.flags = new Bitflags();
 
         return event;
     }
